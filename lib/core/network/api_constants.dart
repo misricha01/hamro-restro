@@ -1,0 +1,55 @@
+class ApiConstants {
+  static const String baseUrl = 'http://192.168.1.27:8002';
+
+  static const String login = '/api/auth/login';
+  static const String register = '/api/auth/register';
+  static const String refresh = '/api/auth/refresh';
+  static const String logout = '/api/auth/logout';
+
+  static const String orders = '/api/order';
+  static const String tables = '/api/table';
+  static const String areas = '/api/area';
+  static const String menuCategories = '/api/menu-category';
+  static const String addons = '/api/addons';
+  static const String dishTypes = '/api/dish-type';
+  static const String dishes = '/api/dish';
+  static const String financeDashboard = '/api/dashboard/finance';
+  static const String orderDashboard = '/api/dashboard/order';
+  static const String dashboardOverview = '/api/dashboard';
+  static const String salesTransactions = '/api/sales-transaction';
+  static const String purchaseBills = '/api/purchase-bill';
+  static const String customers = '/api/customers';
+  static const String suppliers = '/api/supplier';
+  static const String units = '/api/unit';
+  static const String notifications = '/api/notification';
+  static const String stockGroups = '/api/stock-group';
+  static const String stocks = '/api/stock';
+  static const String staff = '/api/user';
+  static const String createStaffAccount = '/api/restaurant/create-account';
+  static const String roles = '/api/roles';
+  static const String rbacAssignRole = '/api/rbac/assign-role';
+  static const String rbacAll = '/api/rbac/all';
+  static const String rbacBulk = '/api/rbac/bulk';
+  static const String routes = '/api/routes';
+  static const String myInvoiceSettings = '/api/invoice/my';
+  static const String plans = '/api/plans';
+  static const String planPrices = '/api/plan-prices';
+  static const String features = '/api/features';
+  static const String planFeatures = '/api/plan-features';
+  static const String subscriptionCurrent = '/api/subscriptions/current';
+  static const String subscriptionCancel = '/api/subscriptions/cancel';
+  static const String billingInvoices = '/api/billing/invoices';
+  static const String billingPayments = '/api/billing/payments';
+  static const String paymentMethods = '/api/payment-method';
+  static const String customerGroups = '/api/customer-group';
+  static const String customerComments = '/api/customer-comments';
+  static const String comboOffers = '/api/combo-offer';
+  static const String variants = '/api/variant';
+  static const String typeOfMenus = '/api/type-of-menu';
+  static const String expenses = '/api/expenses';
+  static const String expenseCategories = '/api/expense-category';
+  static const String supplierTransactions = '/api/supplier-transaction';
+
+  static const Duration connectTimeout = Duration(seconds: 15);
+  static const Duration receiveTimeout = Duration(seconds: 15);
+}

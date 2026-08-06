@@ -1,0 +1,59 @@
+import 'package:flutter/foundation.dart';
+import '../core/network/api_exception.dart';
+import '../data/models/dish_type/dish_type_model.dart';
+import '../data/repositories/dish_type_repository.dart';
+import 'order_provider.dart' show LoadStatus;
+
+/// ViewModel for the Dish Type list, used by [SelectDishTypeSheet] and
+/// (eventually) dish creation's type assignment.
+class DishTypeProvider extends ChangeNotifier {
+  final DishTypeRepository _repository;
+
+  DishTypeProvider({required DishTypeRepository repository}) : _repository = repository;
+
+  LoadStatus status = LoadStatus.idle;
+  List<DishType> dishTypes = [];
+  String? errorMessage;
+
+  bool isCreating = false;
+  String? createErrorMessage;
+
+  Future<void> fetchDishTypes() async {
+    status = LoadStatus.loading;
+    errorMessage = null;
+    notifyListeners();
+
+    try {
+      dishTypes = await _repository.getDishTypes();
+      status = LoadStatus.loaded;
+    } on ApiException catch (e) {
+      errorMessage = e.message;
+      status = LoadStatus.error;
+    }
+    notifyListeners();
+  }
+
+  /// Creates a dish type and appends it to [dishTypes] on success. Returns
+  /// the created [DishType], or `null` if the call failed (see
+  /// [createErrorMessage]).
+  Future<DishType?> createDishType({required String dishTypeName}) async {
+    isCreating = true;
+    createErrorMessage = null;
+    notifyListeners();
+
+    try {
+      final dishType = await _repository.createDishType(dishTypeName: dishTypeName);
+      dishTypes = [...dishTypes, dishType];
+      return dishType;
+    } on ApiException catch (e) {
+      createErrorMessage = e.message;
+      return null;
+    } catch (_) {
+      createErrorMessage = 'Something went wrong. Please try again.';
+      return null;
+    } finally {
+      isCreating = false;
+      notifyListeners();
+    }
+  }
+}
