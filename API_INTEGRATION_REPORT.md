@@ -16,6 +16,14 @@
   2. `GET /api/expenses` (list) omits `category`/`paymentMethod` entirely, while `GET /api/expenses/{id}` includes them — editing an expense from the list would have silently sent blank category/payment-method ids. Fixed by fetching the single-item detail on entering edit mode.
 - **Known bug confirmed still live today:** `GET /api/purchase-bill` still 500s once any bill has `customerId` set. Not a frontend issue — still blocks the Purchase Bills tab and Transactions screen's purchase side.
 
+## Re-verification pass (2026-08-09, later same day)
+
+Re-checked the 13 previously-"missing" backend endpoint areas against a **freshly fetched, uncached** copy of `/docs-json` (confirmed 147 paths, same count as the prior check). Method: exact-path lookup, then a keyword scan across every path/tag/summary/description/operationId (not just exact string match, in case the backend team renamed something), then a manual eyeball of the complete sorted path list as a third pass.
+
+**Result: 0 of 13 now available. 13 of 13 still missing. No renames.** Two near-miss keyword collisions were checked and ruled out as unrelated: `POST /api/restaurant/create-account` (staff account creation, not bank accounts) and `/api/table-activity*`/`/api/mailing-service`/`/api/otp` (session tracking / email / OTP — not table reservations or SMS marketing).
+
+This pass also caught two report gaps, now fixed below: **Table Reservation** wasn't listed anywhere in this report despite the screen existing and being confirmed dummy (it even has a `// TODO: Wire to a ReservationProvider once the backend...` comment in the code itself), and **Transfer Ownership** was only in the dummy-screens table, not itemized in the missing-endpoints table for consistency with the others.
+
 ---
 
 # 1. CRUD Integration Status
@@ -147,24 +155,27 @@ Nearly everything that was pending in the previous report is now wired. What's l
 
 # 3. Backend APIs Missing (or admin/platform-only — out of scope)
 
-Verified against the live server's current 147-path Swagger spec. None of these resources exist, and none have appeared since the 2026-08-06 check — the backend has not added any of the tags below.
+Verified against the live server's current 147-path Swagger spec, re-confirmed 2026-08-09 via a fresh uncached fetch plus exact-path + keyword-scan search (see "Re-verification pass" above). None of these resources exist, and none have appeared since the 2026-08-06 check — the backend has not added any of the tags below.
 
 | Screens | Expected Endpoint | Status |
 |---|---|---|
-| Add Income | `POST /api/income` | Missing |
+| Add Income | `POST /api/income` | Missing — reconfirmed 2026-08-09 |
 | Add Sales Return | `POST /api/sales-transaction` | Endpoint has no `POST` — read-only |
-| Tax Rates / Add Tax | `/api/tax` | Missing |
-| Department screen | `/api/department` | Missing |
+| Tax Rates / Add Tax | `/api/tax` | Missing — reconfirmed 2026-08-09 |
+| Department screen | `/api/department` | Missing — reconfirmed 2026-08-09 |
 | Printers Setting | `/api/printer` | Missing |
 | KOT Type Setting | `/api/kot-type` | Missing |
-| SMS screens (5) | `/api/sms` | Missing |
-| Website Builder (4 screens) | `/api/website` | Missing |
-| Delivery (5 screens) | `/api/delivery*` | Missing |
-| Daybook (3 screens) | `/api/daybook` | Missing |
-| Financial Reports (8 screens) | `/api/reports/{type}` | Missing |
-| Cash & Bank Accounts / Balance Transfer | `/api/bank-account` | Missing |
+| SMS screens (5) | `/api/sms` (+ `/log`, `/events`) | Missing — reconfirmed 2026-08-09 |
+| Website Builder (4 screens) | `/api/website` | Missing — reconfirmed 2026-08-09 |
+| Delivery Riders | `/api/delivery-rider` | Missing — reconfirmed 2026-08-09 |
+| Delivery Service / Platforms (4 screens) | `/api/delivery-service`, `/api/delivery-platform` | Missing — reconfirmed 2026-08-09 |
+| Daybook (3 screens) | `/api/daybook` | Missing — reconfirmed 2026-08-09 |
+| Financial Reports (8 screens) | `/api/reports/{type}` | Missing — reconfirmed 2026-08-09 |
+| Cash & Bank Accounts / Balance Transfer | `/api/bank-account` | Missing — reconfirmed 2026-08-09 |
 | Payments (Payment In/Out) | `/api/payment-entry` | Missing |
 | FAQ list | `/api/faq` | Missing |
+| **Table Reservation (new to this report)** | `/api/reservation` (list + create) | **Missing** — `add_reservation_screen.dart` has a `// TODO: Wire to a ReservationProvider once the backend...` comment confirming this was already known; the screen's "Select Existing Customer" picker does use the real `CustomerProvider`, everything else is local-only |
+| **Transfer Ownership (now itemized here too)** | `POST /api/restaurant/transfer-ownership` | Missing — the full `/api/restaurant/*` set (`create-restro`, `create-account`, `pending`, `settings`, `{id}/approve`, `{id}/reject`) has no ownership-transfer op |
 | Trash / restore | soft-delete recovery endpoint | Missing (several resources have `deletedAt` but nothing exposes it) |
 | Delete Restaurant | `DELETE /api/restaurant/{id}` | **Confirmed missing entirely** — only admin approve/reject exist (`/api/restaurant/{id}/approve`, `/reject`) |
 | Dine In Service settings | restaurant-level service-settings resource | Missing |
@@ -210,6 +221,7 @@ Screens reachable from app navigation that still use hardcoded/local state, re-v
 | `website/*` (4 screens) | Hardcoded | `/api/website` missing |
 | `delivery/*` (5 screens) | Hardcoded | `/api/delivery*` missing |
 | `create_users/adjust_balance_screen.dart` | Local-only | No staff-ledger concept |
+| `reservation/add_reservation_screen.dart` (new to this report) | Local-only form (customer picker is real, backed by `CustomerProvider`; everything else isn't) | `/api/reservation` missing — reconfirmed 2026-08-09 |
 | `analytics/top_selling_sub_menus_screen.dart` | Honest empty state (no fake rows) | `/api/dish/dish-stats` groups by dish type, not sub menu — see Section 3 |
 | Customer/Supplier/Staff/Expense photo pickers | Decorative, never upload | **Confirmed: no photo field exists on these entities at all** — not a wiring gap |
 
@@ -239,18 +251,31 @@ Partially CRUD (genuine backend limits, not frontend gaps):
 Read-only modules (backend has no write op, or app only reads):
   Dashboard (x3), Sales Transactions, Plans, Billing, Routes (7 modules)
 
-Dummy screens (Section 4):                  26 screens across 18 groups,
+Dummy screens (Section 4):                  27 screens across 19 groups,
                                              all confirmed blocked on a
                                              missing backend resource as
                                              of 2026-08-09 (down from 28
-                                             groups — stock_group_detail
-                                             _sheet.dart and most photo
-                                             pickers resolved)
+                                             groups originally — stock_
+                                             group_detail_sheet.dart and
+                                             most photo pickers resolved;
+                                             up by 1 group — Table
+                                             Reservation was missing from
+                                             the report entirely until
+                                             the 2026-08-09 re-verification
+                                             pass caught it)
 
 Known live bugs:
   GET /api/purchase-bill still 500s once any bill has customerId
   set — confirmed live 2026-08-09, unchanged since 2026-08-06.
   Not fixable from the frontend.
+
+Re-verification pass (2026-08-09, later same day):
+  13 previously-flagged-missing endpoint areas (Income, Cash & Bank
+  Accounts, Daybook, Reports, Tax, Departments, Transfer Ownership,
+  Table Reservation x2, Delivery Riders, Delivery Service/Platforms,
+  SMS, Website) re-checked against a fresh uncached Swagger fetch —
+  0 of 13 now available, 0 renamed, 13 still missing. No backend
+  changes since the original check.
 
 Corrected from the 2026-08-06 report:
   "Restaurant invoice generation" was never a real gap — /api/invoice
