@@ -73,6 +73,68 @@ class ExpenseProvider extends ChangeNotifier {
     }
   }
 
+  /// Fetches the full detail for [id], which — unlike the already-listed
+  /// [Expense] — is guaranteed to carry real `categoryId`/`paymentMethodId`
+  /// (see [ExpenseRepository.getExpense]). Returns `null` on failure; there's
+  /// nothing more to do with the error than leave the caller's prefilled
+  /// category/payment-method fields as they were.
+  Future<Expense?> fetchExpenseDetail(String id) async {
+    try {
+      return await _repository.getExpense(id);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  bool isUpdating = false;
+  String? updateErrorMessage;
+
+  /// Updates an expense and replaces it in [expenses] on success. Returns
+  /// the updated [Expense], or `null` if the call failed (see
+  /// [updateErrorMessage]).
+  Future<Expense?> updateExpense({
+    required String id,
+    required String title,
+    required String categoryId,
+    required double amount,
+    required String expenseDate,
+    required String paymentDate,
+    required String dueDate,
+    required String paymentStatus,
+    required String paymentMethodId,
+    String? description,
+  }) async {
+    isUpdating = true;
+    updateErrorMessage = null;
+    notifyListeners();
+
+    try {
+      final expense = await _repository.updateExpense(
+        id: id,
+        title: title,
+        categoryId: categoryId,
+        amount: amount,
+        expenseDate: expenseDate,
+        paymentDate: paymentDate,
+        dueDate: dueDate,
+        paymentStatus: paymentStatus,
+        paymentMethodId: paymentMethodId,
+        description: description,
+      );
+      expenses = expenses.map((e) => e.id == id ? expense : e).toList();
+      return expense;
+    } on ApiException catch (e) {
+      updateErrorMessage = e.message;
+      return null;
+    } catch (_) {
+      updateErrorMessage = 'Something went wrong. Please try again.';
+      return null;
+    } finally {
+      isUpdating = false;
+      notifyListeners();
+    }
+  }
+
   bool isDeleting = false;
   String? deleteErrorMessage;
 

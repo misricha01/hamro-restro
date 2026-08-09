@@ -23,7 +23,7 @@ class AreaRepositoryImpl implements AreaRepository {
   Future<List<Area>> getAreas() async {
     try {
       final response = await _dio.get(ApiConstants.areas);
-      final data = response.data['data'] as List<dynamic>;
+      final data = response.data['data'] as List<dynamic>? ?? [];
       return data.map((e) => Area.fromJson(e as Map<String, dynamic>)).toList();
     } on DioException catch (e) {
       throw mapDioError(e);

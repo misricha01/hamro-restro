@@ -20,7 +20,7 @@ class RouteRepositoryImpl implements RouteRepository {
   Future<List<ApiRoute>> getRoutes() async {
     try {
       final response = await _dio.get(ApiConstants.routes, queryParameters: {'page': 1, 'take': 200});
-      final data = response.data['data'] as List<dynamic>;
+      final data = response.data['data'] as List<dynamic>? ?? [];
       return data.map((e) => ApiRoute.fromJson(e as Map<String, dynamic>)).toList();
     } on DioException catch (e) {
       throw mapDioError(e);

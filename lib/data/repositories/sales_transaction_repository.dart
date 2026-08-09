@@ -22,7 +22,7 @@ class SalesTransactionRepositoryImpl implements SalesTransactionRepository {
         ApiConstants.salesTransactions,
         queryParameters: {'page': 1, 'take': 50, 'checkoutStatus': ?checkoutStatus},
       );
-      final data = response.data['data'] as List<dynamic>;
+      final data = response.data['data'] as List<dynamic>? ?? [];
       return data.map((e) => SalesTransaction.fromJson(e as Map<String, dynamic>)).toList();
     } on DioException catch (e) {
       throw mapDioError(e);

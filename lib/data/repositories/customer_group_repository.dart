@@ -23,7 +23,7 @@ class CustomerGroupRepositoryImpl implements CustomerGroupRepository {
   Future<List<CustomerGroup>> getCustomerGroups() async {
     try {
       final response = await _dio.get(ApiConstants.customerGroups, queryParameters: {'page': 1, 'take': 100});
-      final data = response.data['data'] as List<dynamic>;
+      final data = response.data['data'] as List<dynamic>? ?? [];
       return data.map((e) => CustomerGroup.fromJson(e as Map<String, dynamic>)).toList();
     } on DioException catch (e) {
       throw mapDioError(e);

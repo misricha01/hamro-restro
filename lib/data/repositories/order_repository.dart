@@ -19,7 +19,7 @@ class OrderRepositoryImpl implements OrderRepository {
   Future<List<Order>> getOrders() async {
     try {
       final response = await _dio.get(ApiConstants.orders, queryParameters: {'page': 1, 'take': 50});
-      final data = response.data['data'] as List<dynamic>;
+      final data = response.data['data'] as List<dynamic>? ?? [];
       return data.map((e) => Order.fromJson(e as Map<String, dynamic>)).toList();
     } on DioException catch (e) {
       throw mapDioError(e);

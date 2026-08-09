@@ -63,7 +63,7 @@ class StockRepositoryImpl implements StockRepository {
   Future<List<Stock>> getStocks() async {
     try {
       final response = await _dio.get(ApiConstants.stocks, queryParameters: {'page': 1, 'take': 200});
-      final data = response.data['data'] as List<dynamic>;
+      final data = response.data['data'] as List<dynamic>? ?? [];
       return data.map((e) => Stock.fromJson(e as Map<String, dynamic>)).toList();
     } on DioException catch (e) {
       throw mapDioError(e);
@@ -213,7 +213,7 @@ class StockRepositoryImpl implements StockRepository {
           if (stockGroupId != null) 'stockGroupId': stockGroupId,
         },
       );
-      final data = response.data['data'] as List<dynamic>;
+      final data = response.data['data'] as List<dynamic>? ?? [];
       return data.map((e) => StockTransaction.fromJson(e as Map<String, dynamic>)).toList();
     } on DioException catch (e) {
       throw mapDioError(e);

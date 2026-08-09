@@ -44,6 +44,13 @@ class _FinanceAnalyticsScreenState extends State<FinanceAnalyticsScreen> {
     }
   }
 
+  Future<void> _editExpense(Expense expense) async {
+    final result = await Navigator.push<Expense>(context, MaterialPageRoute(builder: (context) => AddExpenseScreen(existingExpense: expense)));
+    if (result != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Expense updated')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ExpenseProvider>();
@@ -155,6 +162,13 @@ class _FinanceAnalyticsScreenState extends State<FinanceAnalyticsScreen> {
                       ],
                     ),
                     const SizedBox(width: 4),
+                    GestureDetector(
+                      onTap: () => _editExpense(expense),
+                      child: const Padding(
+                        padding: EdgeInsets.only(left: 8),
+                        child: Icon(Icons.edit_outlined, color: AppTheme.textSecondary, size: 18),
+                      ),
+                    ),
                     GestureDetector(
                       onTap: () => _confirmDeleteExpense(context, expense),
                       child: const Padding(

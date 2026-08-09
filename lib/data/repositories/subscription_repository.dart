@@ -48,7 +48,7 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
   Future<List<BillingInvoice>> getBillingInvoices() async {
     try {
       final response = await _dio.get(ApiConstants.billingInvoices, queryParameters: {'page': 1, 'take': 50});
-      final data = response.data['data'] as List<dynamic>;
+      final data = response.data['data'] as List<dynamic>? ?? [];
       return data.map((e) => BillingInvoice.fromJson(e as Map<String, dynamic>)).toList();
     } on DioException catch (e) {
       throw mapDioError(e);
@@ -59,7 +59,7 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
   Future<List<BillingPayment>> getBillingPayments() async {
     try {
       final response = await _dio.get(ApiConstants.billingPayments, queryParameters: {'page': 1, 'take': 50});
-      final data = response.data['data'] as List<dynamic>;
+      final data = response.data['data'] as List<dynamic>? ?? [];
       return data.map((e) => BillingPayment.fromJson(e as Map<String, dynamic>)).toList();
     } on DioException catch (e) {
       throw mapDioError(e);

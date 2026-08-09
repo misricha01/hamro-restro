@@ -26,7 +26,7 @@ class PlanRepositoryImpl implements PlanRepository {
   Future<List<Plan>> getPlans() async {
     try {
       final response = await _dio.get(ApiConstants.plans);
-      final data = response.data['data'] as List<dynamic>;
+      final data = response.data['data'] as List<dynamic>? ?? [];
       return data.map((e) => Plan.fromJson(e as Map<String, dynamic>)).toList();
     } on DioException catch (e) {
       throw mapDioError(e);
@@ -37,7 +37,7 @@ class PlanRepositoryImpl implements PlanRepository {
   Future<List<PlanPrice>> getPlanPrices() async {
     try {
       final response = await _dio.get(ApiConstants.planPrices);
-      final data = response.data['data'] as List<dynamic>;
+      final data = response.data['data'] as List<dynamic>? ?? [];
       return data.map((e) => PlanPrice.fromJson(e as Map<String, dynamic>)).toList();
     } on DioException catch (e) {
       throw mapDioError(e);
@@ -48,7 +48,7 @@ class PlanRepositoryImpl implements PlanRepository {
   Future<List<PlanFeatureDef>> getFeatures() async {
     try {
       final response = await _dio.get(ApiConstants.features);
-      final data = response.data['data'] as List<dynamic>;
+      final data = response.data['data'] as List<dynamic>? ?? [];
       return data.map((e) => PlanFeatureDef.fromJson(e as Map<String, dynamic>)).toList();
     } on DioException catch (e) {
       throw mapDioError(e);
@@ -59,7 +59,7 @@ class PlanRepositoryImpl implements PlanRepository {
   Future<List<PlanFeatureGrant>> getPlanFeatures() async {
     try {
       final response = await _dio.get(ApiConstants.planFeatures);
-      final data = response.data['data'] as List<dynamic>;
+      final data = response.data['data'] as List<dynamic>? ?? [];
       return data.map((e) => PlanFeatureGrant.fromJson(e as Map<String, dynamic>)).toList();
     } on DioException catch (e) {
       throw mapDioError(e);

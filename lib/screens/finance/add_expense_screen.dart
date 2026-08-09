@@ -15,8 +15,18 @@ import '../../widgets/common/finance_form_fields.dart';
 /// `/api/payment-method`), Description. Replaces the previous local-only
 /// "Account Head / Parties / Reference No" mockup, which had no backend
 /// equivalent and saved nothing.
+///
+/// Also doubles as the edit form when [existingExpense] is passed — the
+/// category/payment-method pickers need real [ExpenseCategory]/[PaymentMode]
+/// objects to prefill, not just ids, so those are reconstructed directly
+/// from [Expense.categoryName]/[Expense.paymentMethodName] rather than
+/// re-resolving by id against a provider list.
 class AddExpenseScreen extends StatefulWidget {
-  const AddExpenseScreen({super.key});
+  final Expense? existingExpense;
+
+  const AddExpenseScreen({super.key, this.existingExpense});
+
+  bool get isEditing => existingExpense != null;
 
   @override
   State<AddExpenseScreen> createState() => _AddExpenseScreenState();
@@ -38,6 +48,35 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   bool _amountError = false;
   bool _categoryError = false;
   bool _paymentMethodError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final expense = widget.existingExpense;
+    if (expense == null) return;
+    _titleController.text = expense.title;
+    _amountController.text = expense.amount == expense.amount.roundToDouble() ? expense.amount.toStringAsFixed(0) : expense.amount.toString();
+    _descriptionController.text = expense.description ?? '';
+    _category = ExpenseCategory(id: expense.categoryId, name: expense.categoryName ?? 'Category');
+    _paymentMethod = PaymentMode(id: expense.paymentMethodId, name: expense.paymentMethodName ?? 'Payment Method');
+    _isPaid = expense.paymentStatus.toLowerCase() == 'paid';
+    _expenseDate = expense.expenseDate ?? DateTime.now();
+    _paymentDate = expense.paymentDate ?? DateTime.now();
+    _dueDate = expense.dueDate ?? DateTime.now();
+
+    // The already-listed [expense] doesn't carry real category/payment-method
+    // ids (`GET /api/expenses` omits those relations, unlike the single-item
+    // fetch — confirmed live) — refresh from the full detail so the picker
+    // fields above aren't silently wrong if the user doesn't reselect them.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final detail = await context.read<ExpenseProvider>().fetchExpenseDetail(expense.id);
+      if (detail == null || !mounted) return;
+      setState(() {
+        _category = ExpenseCategory(id: detail.categoryId, name: detail.categoryName ?? _category?.name ?? 'Category');
+        _paymentMethod = PaymentMode(id: detail.paymentMethodId, name: detail.paymentMethodName ?? _paymentMethod?.name ?? 'Payment Method');
+      });
+    });
+  }
 
   @override
   void dispose() {
@@ -82,22 +121,37 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     if (_titleError || _amountError || _categoryError || _paymentMethodError) return;
 
     final provider = context.read<ExpenseProvider>();
-    final expense = await provider.createExpense(
-      title: _titleController.text.trim(),
-      categoryId: _category!.id,
-      amount: double.parse(_amountController.text.trim()),
-      expenseDate: AppDateField.format(_expenseDate),
-      paymentDate: AppDateField.format(_paymentDate),
-      dueDate: AppDateField.format(_dueDate),
-      paymentStatus: _isPaid ? 'paid' : 'unpaid',
-      paymentMethodId: _paymentMethod!.id,
-      description: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
-    );
+    final description = _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim();
+    final expense = widget.isEditing
+        ? await provider.updateExpense(
+            id: widget.existingExpense!.id,
+            title: _titleController.text.trim(),
+            categoryId: _category!.id,
+            amount: double.parse(_amountController.text.trim()),
+            expenseDate: AppDateField.format(_expenseDate),
+            paymentDate: AppDateField.format(_paymentDate),
+            dueDate: AppDateField.format(_dueDate),
+            paymentStatus: _isPaid ? 'paid' : 'unpaid',
+            paymentMethodId: _paymentMethod!.id,
+            description: description,
+          )
+        : await provider.createExpense(
+            title: _titleController.text.trim(),
+            categoryId: _category!.id,
+            amount: double.parse(_amountController.text.trim()),
+            expenseDate: AppDateField.format(_expenseDate),
+            paymentDate: AppDateField.format(_paymentDate),
+            dueDate: AppDateField.format(_dueDate),
+            paymentStatus: _isPaid ? 'paid' : 'unpaid',
+            paymentMethodId: _paymentMethod!.id,
+            description: description,
+          );
     if (!mounted) return;
     if (expense != null) {
       Navigator.pop(context, expense);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(provider.createErrorMessage ?? 'Something went wrong. Please try again.')));
+      final message = widget.isEditing ? provider.updateErrorMessage : provider.createErrorMessage;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message ?? 'Something went wrong. Please try again.')));
     }
   }
 
@@ -120,7 +174,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             ),
           ),
         ),
-        title: const Text('Add Expense', style: TextStyle(color: AppTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none)),
+        title: Text(widget.isEditing ? 'Edit Expense' : 'Add Expense', style: const TextStyle(color: AppTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none)),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -213,11 +267,11 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         child: SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: provider.isCreating ? null : _save,
+            onPressed: (widget.isEditing ? provider.isUpdating : provider.isCreating) ? null : _save,
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-            child: provider.isCreating
+            child: (widget.isEditing ? provider.isUpdating : provider.isCreating)
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Text('Save Expense', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
+                : Text(widget.isEditing ? 'Update Expense' : 'Save Expense', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
           ),
         ),
       ),

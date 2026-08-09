@@ -57,7 +57,7 @@ class TableRepositoryImpl implements TableRepository {
       // the most recent 50, so this uses a much higher ceiling than other
       // paginated list endpoints in the app.
       final response = await _dio.get(ApiConstants.tables, queryParameters: {'page': 1, 'take': 200});
-      final data = response.data['data'] as List<dynamic>;
+      final data = response.data['data'] as List<dynamic>? ?? [];
       return data.map((e) => RestaurantTable.fromJson(e as Map<String, dynamic>)).toList();
     } on DioException catch (e) {
       throw mapDioError(e);

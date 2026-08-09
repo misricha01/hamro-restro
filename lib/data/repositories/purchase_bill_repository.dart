@@ -51,7 +51,7 @@ class PurchaseBillRepositoryImpl implements PurchaseBillRepository {
         ApiConstants.purchaseBills,
         queryParameters: {'page': 1, 'take': 50, 'purchaseStatus': ?purchaseStatus},
       );
-      final data = response.data['data'] as List<dynamic>;
+      final data = response.data['data'] as List<dynamic>? ?? [];
       return data.map((e) => PurchaseBill.fromJson(e as Map<String, dynamic>)).toList();
     } on DioException catch (e) {
       throw mapDioError(e);

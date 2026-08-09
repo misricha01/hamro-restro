@@ -29,7 +29,7 @@ class NotificationRepositoryImpl implements NotificationRepository {
   Future<List<AppNotification>> getNotifications() async {
     try {
       final response = await _dio.get(ApiConstants.notifications, queryParameters: {'page': 1, 'take': 100});
-      final data = response.data['data'] as List<dynamic>;
+      final data = response.data['data'] as List<dynamic>? ?? [];
       return data.map((e) => AppNotification.fromJson(e as Map<String, dynamic>)).toList();
     } on DioException catch (e) {
       throw mapDioError(e);

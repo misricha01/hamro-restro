@@ -23,7 +23,7 @@ class UnitRepositoryImpl implements UnitRepository {
   Future<List<Unit>> getUnits() async {
     try {
       final response = await _dio.get(ApiConstants.units, queryParameters: {'page': 1, 'take': 100});
-      final data = response.data['data'] as List<dynamic>;
+      final data = response.data['data'] as List<dynamic>? ?? [];
       return data.map((e) => Unit.fromJson(e as Map<String, dynamic>)).toList();
     } on DioException catch (e) {
       throw mapDioError(e);

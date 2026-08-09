@@ -26,7 +26,7 @@ class CustomerCommentRepositoryImpl implements CustomerCommentRepository {
         '${ApiConstants.customerComments}/customer/$customerId',
         queryParameters: {'page': 1, 'take': 100},
       );
-      final data = response.data['data'] as List<dynamic>;
+      final data = response.data['data'] as List<dynamic>? ?? [];
       return data.map((e) => CustomerComment.fromJson(e as Map<String, dynamic>)).toList();
     } on DioException catch (e) {
       throw mapDioError(e);
