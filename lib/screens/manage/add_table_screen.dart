@@ -72,6 +72,37 @@ class _AddTableScreenState extends State<AddTableScreen> {
     SelectSpaceSheet.show(context, onSelected: (space) => setState(() => _space = space));
   }
 
+  Future<void> _confirmDelete() async {
+    final table = widget.editingTable;
+    if (table == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surface,
+        title: const Text('Delete Table', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, decoration: TextDecoration.none)),
+        content: Text(
+          'Remove "${table.tableName}"? This cannot be undone.',
+          style: const TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none))),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete', style: TextStyle(color: AppTheme.cancelled, fontWeight: FontWeight.w700, decoration: TextDecoration.none))),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final provider = context.read<TableProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    final success = await provider.deleteTable(table.id);
+    if (success) {
+      if (mounted) navigator.pop();
+    } else if (mounted) {
+      messenger.showSnackBar(SnackBar(content: Text(provider.deleteErrorMessage ?? 'Failed to delete table')));
+    }
+  }
+
   Future<void> _save() async {
     final name = _nameController.text.trim();
     final charge = _enableCharge ? double.tryParse(_chargeController.text.trim()) : null;
@@ -135,6 +166,30 @@ class _AddTableScreenState extends State<AddTableScreen> {
           _isEditing ? 'Edit Table' : 'Create Table',
           style: const TextStyle(color: AppTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none),
         ),
+        actions: [
+          if (_isEditing)
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Consumer<TableProvider>(
+                builder: (context, provider, _) {
+                  if (provider.isDeleting) {
+                    return const Padding(
+                      padding: EdgeInsets.all(10),
+                      child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5, color: AppTheme.accent)),
+                    );
+                  }
+                  return GestureDetector(
+                    onTap: _confirmDelete,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(border: Border.all(color: AppTheme.divider), borderRadius: BorderRadius.circular(10)),
+                      child: const Icon(Icons.delete_outline, color: AppTheme.cancelled, size: 20),
+                    ),
+                  );
+                },
+              ),
+            ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),

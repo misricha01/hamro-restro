@@ -112,7 +112,7 @@ class _StockGroupScreenState extends State<StockGroupScreen> {
                   return _StockGroupRow(
                     group: group,
                     itemCount: itemCount,
-                    onTap: () => StockGroupDetailSheet.show(context, name: group.groupName, description: group.groupDescription ?? '', itemCount: itemCount),
+                    onTap: () => StockGroupDetailSheet.show(context, group: group, itemCount: itemCount),
                   );
                 },
               );

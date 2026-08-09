@@ -1,15 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../data/models/supplier/supplier_model.dart';
 import '../../providers/supplier_provider.dart';
 
 /// "Add Supplier" form, backed by [SupplierProvider.createSupplier]
 /// (`POST /api/supplier`). Fields mirror the real backend `Supplier` shape
 /// confirmed via Swagger — the previous version (Opening Balance, Legal
 /// Name, Tax Number, Email, Date of Birth) doesn't match any real field and
-/// has been dropped in favor of `address`/`remarks`.
+/// has been dropped in favor of `address`/`remarks`. Also reused for editing
+/// (pass [existingSupplier]), which calls
+/// [SupplierProvider.updateSupplier] (`PATCH /api/supplier/{id}`) instead.
 class AddSupplierScreen extends StatefulWidget {
-  const AddSupplierScreen({super.key});
+  final Supplier? existingSupplier;
+
+  const AddSupplierScreen({super.key, this.existingSupplier});
+
+  bool get isEditing => existingSupplier != null;
 
   @override
   State<AddSupplierScreen> createState() => _AddSupplierScreenState();
@@ -24,6 +31,18 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
   bool _isDirty = false;
   bool _nameError = false;
   bool _contactError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final supplier = widget.existingSupplier;
+    if (supplier != null) {
+      _nameController.text = supplier.supplierName;
+      _contactController.text = supplier.phoneNumber;
+      _addressController.text = supplier.address ?? '';
+      _remarksController.text = supplier.remarks ?? '';
+    }
+  }
 
   @override
   void dispose() {
@@ -61,20 +80,20 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
 
     final provider = context.read<SupplierProvider>();
     final messenger = ScaffoldMessenger.of(context);
+    final address = _addressController.text.trim().isEmpty ? null : _addressController.text.trim();
+    final remarks = _remarksController.text.trim().isEmpty ? null : _remarksController.text.trim();
 
-    final supplier = await provider.createSupplier(
-      supplierName: name,
-      phoneNumber: phone,
-      address: _addressController.text.trim().isEmpty ? null : _addressController.text.trim(),
-      remarks: _remarksController.text.trim().isEmpty ? null : _remarksController.text.trim(),
-    );
+    final supplier = widget.isEditing
+        ? await provider.updateSupplier(id: widget.existingSupplier!.id, supplierName: name, phoneNumber: phone, address: address, remarks: remarks)
+        : await provider.createSupplier(supplierName: name, phoneNumber: phone, address: address, remarks: remarks);
     if (!mounted) return;
 
     if (supplier != null) {
-      messenger.showSnackBar(const SnackBar(content: Text('Supplier created successfully')));
+      messenger.showSnackBar(SnackBar(content: Text(widget.isEditing ? 'Supplier updated successfully' : 'Supplier created successfully')));
       Navigator.pop(context, supplier);
     } else {
-      messenger.showSnackBar(SnackBar(content: Text(provider.createErrorMessage ?? 'Failed to create supplier')));
+      final message = widget.isEditing ? provider.updateErrorMessage : provider.createErrorMessage;
+      messenger.showSnackBar(SnackBar(content: Text(message ?? 'Failed to save supplier')));
     }
   }
 
@@ -99,9 +118,9 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
             ),
           ),
         ),
-        title: const Text(
-          'Add Supplier',
-          style: TextStyle(color: AppTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none),
+        title: Text(
+          widget.isEditing ? 'Edit Supplier' : 'Add Supplier',
+          style: const TextStyle(color: AppTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none),
         ),
       ),
       body: ListView(
@@ -162,16 +181,17 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
               flex: 2,
               child: Consumer<SupplierProvider>(
                 builder: (context, provider, _) {
+                  final isSaving = widget.isEditing ? provider.isUpdating : provider.isCreating;
                   return ElevatedButton(
-                    onPressed: provider.isCreating ? null : _saveSupplier,
+                    onPressed: isSaving ? null : _saveSupplier,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primary,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
-                    child: provider.isCreating
+                    child: isSaving
                         ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
-                        : const Text('Save Supplier', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
+                        : Text(widget.isEditing ? 'Update Supplier' : 'Save Supplier', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
                   );
                 },
               ),

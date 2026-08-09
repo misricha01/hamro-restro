@@ -1,23 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../providers/order_provider.dart' show LoadStatus;
+import '../../providers/type_of_menu_provider.dart';
 import '../../widgets/common/manage_list_controls.dart';
 import '../create_dish/add_menu_set_screen.dart' show AddMenuSetScreen;
+import 'default_menu_set_screen.dart';
 
 /// Menu Set list for the Manage screen, reached from the Menu overview's
 /// "Menu Set" row. Shows the configured menu sets with search, matching the
 /// reference design's "Default Menuset" card + "Add New Menu Set" action.
+///
+/// Menu Set has no backend entity of its own (confirmed: no `/api/menu-set`
+/// endpoint in Swagger) — the list itself stays local, same as before. What
+/// it opens into, [DefaultMenuSetScreen], is not local: its Dishes/Sub
+/// Menu/Category tabs are the real Dish/TypeOfMenu/Category data.
 class MenuSetItem {
-  final String name;
+  String name;
   final String initials;
   final List<String> services;
-  final int subMenuCount;
   final bool active;
 
   MenuSetItem({
     required this.name,
     required this.initials,
     required this.services,
-    required this.subMenuCount,
     this.active = true,
   });
 }
@@ -35,11 +42,19 @@ class _ManageMenuSetScreenState extends State<ManageMenuSetScreen> {
       name: 'Default Menuset',
       initials: 'DM',
       services: const ['Dine In Service', 'Delivery Services', 'Pickup Services', 'Reservation Services', 'Takeaway Services'],
-      subMenuCount: 3,
     ),
   ];
   final _searchController = TextEditingController();
   bool _searchVisible = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final provider = context.read<TypeOfMenuProvider>();
+    if (provider.status == LoadStatus.idle) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => provider.fetchTypeOfMenus());
+    }
+  }
 
   List<MenuSetItem> get _filtered {
     if (_searchController.text.isEmpty) return _menuSets;
@@ -70,9 +85,21 @@ class _ManageMenuSetScreenState extends State<ManageMenuSetScreen> {
             name: result,
             initials: result.trim().isEmpty ? '?' : result.trim().substring(0, 1).toUpperCase(),
             services: const [],
-            subMenuCount: 0,
           )));
     }
+  }
+
+  Future<void> _openMenuSet(MenuSetItem menuSet) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DefaultMenuSetScreen(
+          menuSet: menuSet,
+          onRenamed: (newName) => setState(() => menuSet.name = newName),
+          onDeleted: () => setState(() => _menuSets.remove(menuSet)),
+        ),
+      ),
+    );
   }
 
   @override
@@ -117,7 +144,11 @@ class _ManageMenuSetScreenState extends State<ManageMenuSetScreen> {
                 padding: const EdgeInsets.all(16),
                 children: [
                   for (final menuSet in _filtered) ...[
-                    _MenuSetCard(menuSet: menuSet),
+                    _MenuSetCard(
+                      menuSet: menuSet,
+                      subMenuCount: context.watch<TypeOfMenuProvider>().types.length,
+                      onTap: () => _openMenuSet(menuSet),
+                    ),
                     const SizedBox(height: 12),
                   ],
                   const SizedBox(height: 8),
@@ -157,11 +188,16 @@ class _ManageMenuSetScreenState extends State<ManageMenuSetScreen> {
 
 class _MenuSetCard extends StatelessWidget {
   final MenuSetItem menuSet;
-  const _MenuSetCard({required this.menuSet});
+  final int subMenuCount;
+  final VoidCallback onTap;
+  const _MenuSetCard({required this.menuSet, required this.subMenuCount, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppTheme.card,
@@ -205,7 +241,7 @@ class _MenuSetCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                'Sub Menu: ${menuSet.subMenuCount}',
+                'Sub Menu: $subMenuCount',
                 style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.w600, decoration: TextDecoration.none),
               ),
               const SizedBox(height: 8),
@@ -228,6 +264,7 @@ class _MenuSetCard extends StatelessWidget {
             ],
           ),
         ],
+      ),
       ),
     );
   }

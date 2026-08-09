@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/network/api_client.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/customer/customer_model.dart';
+import '../../data/models/media/media_model.dart';
 import '../../data/models/payment_method/payment_method_model.dart';
+import '../../data/models/sales_purchase/purchase_bill_model.dart';
 import '../../data/models/supplier/supplier_model.dart';
 import '../../providers/customer_provider.dart';
 import '../../providers/order_provider.dart' show LoadStatus;
 import '../../providers/purchase_bill_provider.dart';
 import '../../providers/supplier_provider.dart';
 import '../../widgets/common/finance_form_fields.dart';
+import '../../widgets/common/media_upload_helper.dart';
 import '../create_users/add_supplier_screen.dart';
 import 'add_expense_screen.dart' show SelectPaymentMethodSheet;
 
@@ -17,13 +21,26 @@ import 'add_expense_screen.dart' show SelectPaymentMethodSheet;
 /// Supplier (real `/api/supplier`), Customer (real `/api/customers` — the
 /// DTO requires a `customerId` even though this is a supplier purchase),
 /// Amount, Purchase Status, Payment Method (real `/api/payment-method`,
-/// also supplies the required free-text `payment_type`). Replaces the
+/// also supplies the required free-text `payment_type`), and an optional
+/// Bill Photo wired to the real `imageId` field via the shared media-upload
+/// flow (mirrors Add Dish's Dish Photo / Add Combo's Combo Photo). Replaces the
 /// previous local-only "Item Details / Account Head" mockup, which had no
 /// backend equivalent (the API has no line-item concept) and saved nothing.
+///
+/// Also doubles as the edit form when [existingBill] is passed — the
+/// Supplier/Customer objects aren't embedded richly enough on the bill to
+/// reconstruct locally, so edit mode resolves them by id against
+/// [SupplierProvider]/[CustomerProvider]'s already-fetched lists (fetching
+/// first if needed); if a match can't be found the field is simply left
+/// blank and the existing required-field validation makes the user re-pick
+/// it before saving, same as create.
 class AddPurchaseScreen extends StatefulWidget {
   final String title;
+  final PurchaseBill? existingBill;
 
-  const AddPurchaseScreen({super.key, this.title = 'Add Purchase Bill'});
+  const AddPurchaseScreen({super.key, this.title = 'Add Purchase Bill', this.existingBill});
+
+  bool get isEditing => existingBill != null;
 
   @override
   State<AddPurchaseScreen> createState() => _AddPurchaseScreenState();
@@ -38,11 +55,44 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
   PaymentMode? _paymentMethod;
   DateTime _billDate = DateTime.now();
   bool _isPaid = true;
+  UploadedMedia? _uploadedPhoto;
 
   bool _billNoError = false;
   bool _amountError = false;
   bool _supplierError = false;
   bool _customerError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final bill = widget.existingBill;
+    if (bill == null) return;
+    _billNoController.text = bill.billNo;
+    _amountController.text = bill.amount.toStringAsFixed(0);
+    _billDate = bill.date;
+    _isPaid = bill.purchaseStatus == 'paid';
+    if (bill.paymentMethodId != null) {
+      _paymentMethod = PaymentMode(id: bill.paymentMethodId!, name: bill.paymentMethodName ?? bill.paymentType);
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) => _resolveExistingRefs(bill));
+  }
+
+  Future<void> _resolveExistingRefs(PurchaseBill bill) async {
+    final supplierProvider = context.read<SupplierProvider>();
+    if (supplierProvider.status == LoadStatus.idle) await supplierProvider.fetchSuppliers();
+    final customerProvider = context.read<CustomerProvider>();
+    if (customerProvider.status == LoadStatus.idle) await customerProvider.fetchCustomers();
+    if (!mounted) return;
+
+    final supplierId = bill.supplier?.id;
+    final supplierMatches = supplierId == null ? const <Supplier>[] : supplierProvider.suppliers.where((s) => s.id == supplierId).toList();
+    final customerMatches = bill.customerId == null ? const <Customer>[] : customerProvider.customers.where((c) => c.id == bill.customerId).toList();
+    if (supplierMatches.isEmpty && customerMatches.isEmpty) return;
+    setState(() {
+      if (supplierMatches.isNotEmpty) _supplier = supplierMatches.first;
+      if (customerMatches.isNotEmpty) _customer = customerMatches.first;
+    });
+  }
 
   @override
   void dispose() {
@@ -76,10 +126,17 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
     if (result != null) setState(() => _paymentMethod = result);
   }
 
+  Future<void> _pickBillPhoto() async {
+    final media = await pickAndUploadImage(context);
+    if (media != null) setState(() => _uploadedPhoto = media);
+  }
+
   Future<void> _pickDate() async {
     final result = await showDatePicker(context: context, initialDate: _billDate, firstDate: DateTime(2020), lastDate: DateTime(2100));
     if (result != null) setState(() => _billDate = result);
   }
+
+  bool _isSaving(PurchaseBillProvider provider) => widget.isEditing ? provider.isUpdating : provider.isCreating;
 
   Future<void> _save() async {
     setState(() {
@@ -91,21 +148,38 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
     if (_billNoError || _amountError || _supplierError || _customerError) return;
 
     final provider = context.read<PurchaseBillProvider>();
-    final bill = await provider.createPurchaseBill(
-      date: AppDateField.format(_billDate),
-      supplierId: _supplier!.id,
-      billNo: _billNoController.text.trim(),
-      amount: double.parse(_amountController.text.trim()),
-      purchaseStatus: _isPaid ? 'paid' : 'unpaid',
-      customerId: _customer!.id,
-      paymentType: (_paymentMethod?.name ?? 'cash').toLowerCase(),
-      paymentMethodId: _paymentMethod?.id,
-    );
+    final bill = widget.isEditing
+        ? await provider.updatePurchaseBill(
+            id: widget.existingBill!.id,
+            date: AppDateField.format(_billDate),
+            supplierId: _supplier!.id,
+            billNo: _billNoController.text.trim(),
+            amount: double.parse(_amountController.text.trim()),
+            purchaseStatus: _isPaid ? 'paid' : 'unpaid',
+            customerId: _customer!.id,
+            paymentType: (_paymentMethod?.name ?? 'cash').toLowerCase(),
+            paymentMethodId: _paymentMethod?.id,
+            // A newly-uploaded photo wins; otherwise keep whatever the bill
+            // already had rather than clearing it.
+            imageId: _uploadedPhoto?.id ?? widget.existingBill!.imageId,
+          )
+        : await provider.createPurchaseBill(
+            date: AppDateField.format(_billDate),
+            supplierId: _supplier!.id,
+            billNo: _billNoController.text.trim(),
+            amount: double.parse(_amountController.text.trim()),
+            purchaseStatus: _isPaid ? 'paid' : 'unpaid',
+            customerId: _customer!.id,
+            paymentType: (_paymentMethod?.name ?? 'cash').toLowerCase(),
+            paymentMethodId: _paymentMethod?.id,
+            imageId: _uploadedPhoto?.id,
+          );
     if (!mounted) return;
     if (bill != null) {
       Navigator.pop(context, bill);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(provider.createErrorMessage ?? 'Something went wrong. Please try again.')));
+      final message = widget.isEditing ? provider.updateErrorMessage : provider.createErrorMessage;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message ?? 'Something went wrong. Please try again.')));
     }
   }
 
@@ -129,7 +203,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
           ),
         ),
         title: Text(
-          widget.title,
+          widget.isEditing ? 'Edit Purchase Bill' : widget.title,
           style: const TextStyle(color: AppTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none),
         ),
       ),
@@ -188,6 +262,19 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
           const FieldLabel(label: 'Payment Method', required: false),
           const SizedBox(height: 8),
           SelectField(hint: 'Select Payment Method', value: _paymentMethod?.name, onTap: _pickPaymentMethod),
+          const SizedBox(height: 20),
+
+          const FieldLabel(label: 'Bill Photo', required: false),
+          const SizedBox(height: 8),
+          UploadBox(
+            label: _uploadedPhoto != null
+                ? 'Photo uploaded'
+                : (widget.existingBill?.imageUrl != null ? 'Tap to change photo' : 'Tap here to select or upload photos'),
+            previewUrl: _uploadedPhoto?.url != null
+                ? '${ApiClient.mediaBaseUrl}${_uploadedPhoto!.url}'
+                : (widget.existingBill?.imageUrl != null ? '${ApiClient.mediaBaseUrl}${widget.existingBill!.imageUrl}' : null),
+            onTap: _pickBillPhoto,
+          ),
         ],
       ),
       bottomNavigationBar: Container(
@@ -196,11 +283,11 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
         child: SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: provider.isCreating ? null : _save,
+            onPressed: _isSaving(provider) ? null : _save,
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-            child: provider.isCreating
+            child: _isSaving(provider)
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Text('Save Purchase', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
+                : Text(widget.isEditing ? 'Update Purchase' : 'Save Purchase', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
           ),
         ),
       ),

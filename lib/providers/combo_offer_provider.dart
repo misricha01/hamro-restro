@@ -36,6 +36,7 @@ class ComboOfferProvider extends ChangeNotifier {
     required String name,
     String? description,
     String? hsCode,
+    String? comboPhoto,
     required List<String> dishIds,
     required double offerPrice,
     required DateTime startsAt,
@@ -50,6 +51,7 @@ class ComboOfferProvider extends ChangeNotifier {
         name: name,
         description: description,
         hsCode: hsCode,
+        comboPhoto: comboPhoto,
         dishIds: dishIds,
         offerPrice: offerPrice,
         startsAt: startsAt,
@@ -65,6 +67,53 @@ class ComboOfferProvider extends ChangeNotifier {
       return null;
     } finally {
       isCreating = false;
+      notifyListeners();
+    }
+  }
+
+  bool isUpdating = false;
+  String? updateErrorMessage;
+
+  /// Updates a combo offer and replaces it in [offers] on success. Returns
+  /// the updated [ComboOffer], or `null` if the call failed (see
+  /// [updateErrorMessage]).
+  Future<ComboOffer?> updateComboOffer({
+    required String id,
+    required String name,
+    String? description,
+    String? hsCode,
+    String? comboPhoto,
+    required List<String> dishIds,
+    required double offerPrice,
+    required DateTime startsAt,
+    required DateTime endsAt,
+  }) async {
+    isUpdating = true;
+    updateErrorMessage = null;
+    notifyListeners();
+
+    try {
+      final offer = await _repository.updateComboOffer(
+        id: id,
+        name: name,
+        description: description,
+        hsCode: hsCode,
+        comboPhoto: comboPhoto,
+        dishIds: dishIds,
+        offerPrice: offerPrice,
+        startsAt: startsAt,
+        endsAt: endsAt,
+      );
+      offers = offers.map((o) => o.id == id ? offer : o).toList();
+      return offer;
+    } on ApiException catch (e) {
+      updateErrorMessage = e.message;
+      return null;
+    } catch (_) {
+      updateErrorMessage = 'Something went wrong. Please try again.';
+      return null;
+    } finally {
+      isUpdating = false;
       notifyListeners();
     }
   }

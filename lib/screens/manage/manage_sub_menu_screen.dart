@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../data/models/dish/dish_model.dart';
 import '../../data/models/type_of_menu/type_of_menu_model.dart';
+import '../../providers/dish_provider.dart';
 import '../../providers/order_provider.dart' show LoadStatus;
 import '../../providers/type_of_menu_provider.dart';
 import '../../widgets/common/manage_list_controls.dart';
+import '../../widgets/common/menu_setup_widgets.dart';
 import '../create_dish/add_dish_screen.dart' show AddSubMenuScreen;
+import 'sub_menu_detail_screen.dart';
 
 /// Sub Menu list for the Manage screen, reached from the Menu overview's
 /// "Sub Menu" row, sourced live from [TypeOfMenuProvider] (backend:
-/// `/api/type-of-menu`).
+/// `/api/type-of-menu`). Cards tap through to [SubMenuDetailScreen], which
+/// hosts the Edit/Move To Trash actions — matches the reference, where the
+/// grid itself has no per-card action icon.
 class ManageSubMenuScreen extends StatefulWidget {
   const ManageSubMenuScreen({super.key});
 
@@ -30,6 +36,14 @@ class _ManageSubMenuScreenState extends State<ManageSubMenuScreen> {
     if (provider.status == LoadStatus.idle) {
       WidgetsBinding.instance.addPostFrameCallback((_) => provider.fetchTypeOfMenus());
     }
+    final dishProvider = context.read<DishProvider>();
+    if (dishProvider.status == LoadStatus.idle) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => dishProvider.fetchDishes());
+    }
+  }
+
+  Future<void> _openSubMenu(TypeOfMenu subMenu) async {
+    await Navigator.push(context, MaterialPageRoute(builder: (context) => SubMenuDetailScreen(subMenu: subMenu)));
   }
 
   List<TypeOfMenu> _filtered(List<TypeOfMenu> items) {
@@ -122,14 +136,14 @@ class _ManageSubMenuScreenState extends State<ManageSubMenuScreen> {
                   child: ManageFilterChip(label: 'Status', value: _statusFilter, onTap: _pickStatus),
                 ),
               ),
-            Expanded(child: _buildBody(provider)),
+            Expanded(child: _buildBody(provider, context.watch<DishProvider>().dishes)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBody(TypeOfMenuProvider provider) {
+  Widget _buildBody(TypeOfMenuProvider provider, List<Dish> dishes) {
     switch (provider.status) {
       case LoadStatus.idle:
       case LoadStatus.loading:
@@ -175,7 +189,14 @@ class _ManageSubMenuScreenState extends State<ManageSubMenuScreen> {
                           mainAxisExtent: 160,
                         ),
                         itemCount: filtered.length,
-                        itemBuilder: (context, index) => _SubMenuCard(subMenu: filtered[index]),
+                        itemBuilder: (context, index) {
+                          final subMenu = filtered[index];
+                          return MenuSetupSubMenuCard(
+                            name: subMenu.name,
+                            dishCount: dishes.where((d) => d.typeOfMenuId == subMenu.id).length,
+                            onTap: () => _openSubMenu(subMenu),
+                          );
+                        },
                       ),
                     ),
             ),
@@ -207,35 +228,6 @@ class _ManageSubMenuScreenState extends State<ManageSubMenuScreen> {
           ],
         );
     }
-  }
-}
-
-class _SubMenuCard extends StatelessWidget {
-  final TypeOfMenu subMenu;
-  const _SubMenuCard({required this.subMenu});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      alignment: Alignment.center,
-      decoration: BoxDecoration(color: AppTheme.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppTheme.divider)),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.menu_book_outlined, size: 34, color: AppTheme.accent),
-          const SizedBox(height: 10),
-          Text(
-            subMenu.name,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textPrimary, decoration: TextDecoration.none),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            subMenu.status ? 'Active' : 'Inactive',
-            style: TextStyle(fontSize: 12.5, color: subMenu.status ? AppTheme.completed : AppTheme.textSecondary, decoration: TextDecoration.none),
-          ),
-        ],
-      ),
-    );
   }
 }
 

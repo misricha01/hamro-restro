@@ -552,41 +552,45 @@ class _PurchaseBillCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: AppTheme.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppTheme.divider)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  bill.billNo,
-                  style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 15, decoration: TextDecoration.none),
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => AddPurchaseScreen(existingBill: bill))),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(color: AppTheme.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppTheme.divider)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    bill.billNo,
+                    style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 15, decoration: TextDecoration.none),
+                  ),
                 ),
-              ),
-              _StatusPill(status: bill.purchaseStatus),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            [
-              if (bill.supplier != null) bill.supplier!.supplierName,
-              _formatDate(bill.date),
-            ].join(' • '),
-            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12.5, decoration: TextDecoration.none),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(bill.paymentType.isEmpty ? '—' : bill.paymentType,
-                  style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12.5, decoration: TextDecoration.none)),
-              Text(_rs(bill.amount), style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 15, decoration: TextDecoration.none)),
-            ],
-          ),
-        ],
+                _StatusPill(status: bill.purchaseStatus),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              [
+                if (bill.supplier != null) bill.supplier!.supplierName,
+                _formatDate(bill.date),
+              ].join(' • '),
+              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12.5, decoration: TextDecoration.none),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(bill.paymentType.isEmpty ? '—' : bill.paymentType,
+                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12.5, decoration: TextDecoration.none)),
+                Text(_rs(bill.amount), style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 15, decoration: TextDecoration.none)),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

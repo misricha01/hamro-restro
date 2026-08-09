@@ -129,6 +129,11 @@ class _NotificationScreenState extends State<NotificationScreen>
           _ActivityLogTab(),
         ],
       ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: AppTheme.primary,
+        onPressed: () => ComposeNotificationSheet.show(context),
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
     );
   }
 }
@@ -222,7 +227,10 @@ class _OrderNotificationTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final kot = notification.kot;
-    return Container(
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () => context.read<NotificationProvider>().markNotificationAsRead(notification.id),
+      child: Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -285,6 +293,7 @@ class _OrderNotificationTile extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }
@@ -422,7 +431,10 @@ class _ActivityTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: () => context.read<NotificationProvider>().markNotificationAsRead(item.id),
+      child: Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -472,6 +484,234 @@ class _ActivityTile extends StatelessWidget {
             ),
           ),
         ],
+      ),
+      ),
+    );
+  }
+}
+
+// ---------------- Compose Notification ----------------
+
+/// "Compose Notification" bottom sheet reached from [NotificationScreen]'s
+/// FAB, backed by [NotificationProvider.createNotification]
+/// (`POST /api/notification`). `type` maps to the same 'order' / anything
+/// else split the two tabs already use to filter the list client-side.
+class ComposeNotificationSheet extends StatefulWidget {
+  const ComposeNotificationSheet({super.key});
+
+  static Future<void> show(BuildContext context) {
+    return showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const ComposeNotificationSheet(),
+    );
+  }
+
+  @override
+  State<ComposeNotificationSheet> createState() => _ComposeNotificationSheetState();
+}
+
+class _ComposeNotificationSheetState extends State<ComposeNotificationSheet> {
+  final _titleController = TextEditingController();
+  final _subjectController = TextEditingController();
+  final _messageController = TextEditingController();
+  bool _isOrderType = false;
+
+  bool _titleError = false;
+  bool _subjectError = false;
+  bool _messageError = false;
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _subjectController.dispose();
+    _messageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _send() async {
+    final title = _titleController.text.trim();
+    final subject = _subjectController.text.trim();
+    final message = _messageController.text.trim();
+    setState(() {
+      _titleError = title.isEmpty;
+      _subjectError = subject.isEmpty;
+      _messageError = message.isEmpty;
+    });
+    if (_titleError || _subjectError || _messageError) return;
+
+    final provider = context.read<NotificationProvider>();
+    final result = await provider.createNotification(
+      title: title,
+      subject: subject,
+      notificationMessage: message,
+      type: _isOrderType ? 'order' : 'general',
+    );
+    if (!mounted) return;
+    if (result != null) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Notification sent')));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(provider.createErrorMessage ?? 'Something went wrong. Please try again.')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isCreating = context.watch<NotificationProvider>().isCreating;
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: DraggableScrollableSheet(
+        initialChildSize: 0.65,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) {
+          return Container(
+            decoration: const BoxDecoration(color: AppTheme.surface, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+            child: SafeArea(
+              top: false,
+              child: Stack(
+                children: [
+                  ListView(
+                    controller: scrollController,
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+                    children: [
+                      const Text('Compose Notification', style: TextStyle(color: AppTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none)),
+                      const SizedBox(height: 20),
+
+                      const Text('Type', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600, fontSize: 14, decoration: TextDecoration.none)),
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => setState(() => _isOrderType = false),
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  color: !_isOrderType ? AppTheme.primary : AppTheme.card,
+                                  child: Text('Activity', style: TextStyle(color: !_isOrderType ? Colors.white : AppTheme.textPrimary, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => setState(() => _isOrderType = true),
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  color: _isOrderType ? AppTheme.primary : AppTheme.card,
+                                  child: Text('Order', style: TextStyle(color: _isOrderType ? Colors.white : AppTheme.textPrimary, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      const Text('Title', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600, fontSize: 14, decoration: TextDecoration.none)),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _titleController,
+                        style: const TextStyle(color: AppTheme.textPrimary, decoration: TextDecoration.none),
+                        onChanged: (v) {
+                          if (_titleError && v.trim().isNotEmpty) setState(() => _titleError = false);
+                        },
+                        decoration: InputDecoration(
+                          hintText: 'e.g. New Order Received',
+                          hintStyle: const TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none),
+                          errorText: _titleError ? 'Required' : null,
+                          filled: true,
+                          fillColor: AppTheme.card,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.divider)),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.divider)),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.accent)),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      const Text('Subject', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600, fontSize: 14, decoration: TextDecoration.none)),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _subjectController,
+                        style: const TextStyle(color: AppTheme.textPrimary, decoration: TextDecoration.none),
+                        onChanged: (v) {
+                          if (_subjectError && v.trim().isNotEmpty) setState(() => _subjectError = false);
+                        },
+                        decoration: InputDecoration(
+                          hintText: 'Short subject line',
+                          hintStyle: const TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none),
+                          errorText: _subjectError ? 'Required' : null,
+                          filled: true,
+                          fillColor: AppTheme.card,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.divider)),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.divider)),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.accent)),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      const Text('Message', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600, fontSize: 14, decoration: TextDecoration.none)),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _messageController,
+                        maxLines: 4,
+                        style: const TextStyle(color: AppTheme.textPrimary, decoration: TextDecoration.none),
+                        onChanged: (v) {
+                          if (_messageError && v.trim().isNotEmpty) setState(() => _messageError = false);
+                        },
+                        decoration: InputDecoration(
+                          hintText: 'Enter the notification message',
+                          hintStyle: const TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none),
+                          errorText: _messageError ? 'Required' : null,
+                          filled: true,
+                          fillColor: AppTheme.card,
+                          contentPadding: const EdgeInsets.all(14),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.divider)),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.divider)),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.accent)),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: isCreating ? null : _send,
+                          style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                          child: isCreating
+                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              : const Text('Send Notification', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: const BoxDecoration(color: AppTheme.card, shape: BoxShape.circle),
+                        child: const Icon(Icons.close, color: AppTheme.accent, size: 20),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

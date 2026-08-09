@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../data/models/dish_type/dish_type_model.dart';
 import '../../providers/dish_type_provider.dart';
 
 /// "Add Dish Type" form reached from [SelectDishTypeSheet]'s "Add New"
-/// action. Mirrors [CreateSpaceScreen]'s simple name-only pattern. Saves via
-/// [DishTypeProvider.createDishType] and pops with the created [DishType] on
-/// success.
+/// action, or its row's Edit action. Mirrors [CreateSpaceScreen]'s simple
+/// name-only pattern. Saves via [DishTypeProvider.createDishType] /
+/// [DishTypeProvider.updateDishType] and pops with the resulting [DishType]
+/// on success.
 class AddDishTypeScreen extends StatefulWidget {
-  const AddDishTypeScreen({super.key});
+  final DishType? existingDishType;
+
+  const AddDishTypeScreen({super.key, this.existingDishType});
+
+  bool get isEditing => existingDishType != null;
 
   @override
   State<AddDishTypeScreen> createState() => _AddDishTypeScreenState();
@@ -17,6 +23,13 @@ class AddDishTypeScreen extends StatefulWidget {
 class _AddDishTypeScreenState extends State<AddDishTypeScreen> {
   final _nameController = TextEditingController();
   bool _nameError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final dishType = widget.existingDishType;
+    if (dishType != null) _nameController.text = dishType.dishTypeName;
+  }
 
   @override
   void dispose() {
@@ -31,14 +44,17 @@ class _AddDishTypeScreenState extends State<AddDishTypeScreen> {
 
     final provider = context.read<DishTypeProvider>();
     final messenger = ScaffoldMessenger.of(context);
-    final dishType = await provider.createDishType(dishTypeName: name);
+    final dishType = widget.isEditing
+        ? await provider.updateDishType(id: widget.existingDishType!.id, dishTypeName: name)
+        : await provider.createDishType(dishTypeName: name);
     if (!mounted) return;
 
     if (dishType != null) {
-      messenger.showSnackBar(const SnackBar(content: Text('Dish Type created successfully')));
+      messenger.showSnackBar(SnackBar(content: Text(widget.isEditing ? 'Dish Type updated successfully' : 'Dish Type created successfully')));
       Navigator.pop(context, dishType);
     } else {
-      messenger.showSnackBar(SnackBar(content: Text(provider.createErrorMessage ?? 'Failed to create dish type')));
+      final message = widget.isEditing ? provider.updateErrorMessage : provider.createErrorMessage;
+      messenger.showSnackBar(SnackBar(content: Text(message ?? 'Failed to save dish type')));
     }
   }
 
@@ -60,9 +76,9 @@ class _AddDishTypeScreenState extends State<AddDishTypeScreen> {
             ),
           ),
         ),
-        title: const Text(
-          'Add Dish Type',
-          style: TextStyle(color: AppTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none),
+        title: Text(
+          widget.isEditing ? 'Edit Dish Type' : 'Add Dish Type',
+          style: const TextStyle(color: AppTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none),
         ),
       ),
       body: ListView(
@@ -117,21 +133,24 @@ class _AddDishTypeScreenState extends State<AddDishTypeScreen> {
             Expanded(
               flex: 2,
               child: Consumer<DishTypeProvider>(
-                builder: (context, provider, _) => ElevatedButton(
-                  onPressed: provider.isCreating ? null : _save,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  child: provider.isCreating
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
-                        )
-                      : const Text('Save Dish Type', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
-                ),
+                builder: (context, provider, _) {
+                  final isSaving = widget.isEditing ? provider.isUpdating : provider.isCreating;
+                  return ElevatedButton(
+                    onPressed: isSaving ? null : _save,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: isSaving
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                          )
+                        : Text(widget.isEditing ? 'Update Dish Type' : 'Save Dish Type', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
+                  );
+                },
               ),
             ),
           ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../data/models/addon/addon_model.dart';
 import '../../providers/addon_provider.dart';
 import 'add_dish_screen.dart' show ImageSourceSheet;
 
@@ -10,7 +11,11 @@ import 'add_dish_screen.dart' show ImageSourceSheet;
 /// Saves via [AddOnProvider.createAddOn] and pops with the created [AddOn]
 /// on success.
 class AddAddOnScreen extends StatefulWidget {
-  const AddAddOnScreen({super.key});
+  final AddOn? existingAddOn;
+
+  const AddAddOnScreen({super.key, this.existingAddOn});
+
+  bool get isEditing => existingAddOn != null;
 
   @override
   State<AddAddOnScreen> createState() => _AddAddOnScreenState();
@@ -22,6 +27,16 @@ class _AddAddOnScreenState extends State<AddAddOnScreen> {
   String? _selectedImageSource;
   bool _nameError = false;
   bool _priceError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final addon = widget.existingAddOn;
+    if (addon != null) {
+      _nameController.text = addon.addonName;
+      _priceController.text = addon.price.toStringAsFixed(0);
+    }
+  }
 
   @override
   void dispose() {
@@ -46,14 +61,17 @@ class _AddAddOnScreenState extends State<AddAddOnScreen> {
 
     final provider = context.read<AddOnProvider>();
     final messenger = ScaffoldMessenger.of(context);
-    final addon = await provider.createAddOn(addonName: name, price: price!);
+    final addon = widget.isEditing
+        ? await provider.updateAddOn(id: widget.existingAddOn!.id, addonName: name, price: price!)
+        : await provider.createAddOn(addonName: name, price: price!);
     if (!mounted) return;
 
     if (addon != null) {
-      messenger.showSnackBar(const SnackBar(content: Text('Add-On created successfully')));
+      messenger.showSnackBar(SnackBar(content: Text(widget.isEditing ? 'Add-On updated successfully' : 'Add-On created successfully')));
       Navigator.pop(context, addon);
     } else {
-      messenger.showSnackBar(SnackBar(content: Text(provider.createErrorMessage ?? 'Failed to create add-on')));
+      final message = widget.isEditing ? provider.updateErrorMessage : provider.createErrorMessage;
+      messenger.showSnackBar(SnackBar(content: Text(message ?? 'Failed to save add-on')));
     }
   }
 
@@ -78,9 +96,9 @@ class _AddAddOnScreenState extends State<AddAddOnScreen> {
             ),
           ),
         ),
-        title: const Text(
-          'Add Add-On',
-          style: TextStyle(color: AppTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none),
+        title: Text(
+          widget.isEditing ? 'Edit Add-On' : 'Add Add-On',
+          style: const TextStyle(color: AppTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none),
         ),
       ),
       body: ListView(
@@ -134,21 +152,24 @@ class _AddAddOnScreenState extends State<AddAddOnScreen> {
             Expanded(
               flex: 2,
               child: Consumer<AddOnProvider>(
-                builder: (context, provider, _) => ElevatedButton(
-                  onPressed: provider.isCreating ? null : _save,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  child: provider.isCreating
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
-                        )
-                      : const Text('Save Add-On', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
-                ),
+                builder: (context, provider, _) {
+                  final isSaving = widget.isEditing ? provider.isUpdating : provider.isCreating;
+                  return ElevatedButton(
+                    onPressed: isSaving ? null : _save,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: isSaving
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                          )
+                        : Text(widget.isEditing ? 'Update Add-On' : 'Save Add-On', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
+                  );
+                },
               ),
             ),
           ],

@@ -22,6 +22,20 @@ abstract class PurchaseBillRepository {
     required String customerId,
     required String paymentType,
     String? paymentMethodId,
+    String? imageId,
+  });
+
+  Future<PurchaseBill> updatePurchaseBill({
+    required String id,
+    required String date,
+    required String supplierId,
+    required String billNo,
+    required double amount,
+    required String purchaseStatus,
+    required String customerId,
+    required String paymentType,
+    String? paymentMethodId,
+    String? imageId,
   });
 }
 
@@ -54,6 +68,7 @@ class PurchaseBillRepositoryImpl implements PurchaseBillRepository {
     required String customerId,
     required String paymentType,
     String? paymentMethodId,
+    String? imageId,
   }) async {
     try {
       final response = await _dio.post(
@@ -70,6 +85,7 @@ class PurchaseBillRepositoryImpl implements PurchaseBillRepository {
           'customerId': customerId,
           'payment_type': paymentType,
           'paymentMethodId': ?paymentMethodId,
+          'imageId': ?imageId,
         },
       );
       final raw = response.data['data'];
@@ -98,6 +114,63 @@ class PurchaseBillRepositoryImpl implements PurchaseBillRepository {
         amount: amount,
         purchaseStatus: purchaseStatus,
         paymentType: paymentType,
+      );
+    } on DioException catch (e) {
+      throw mapDioError(e);
+    }
+  }
+
+  @override
+  Future<PurchaseBill> updatePurchaseBill({
+    required String id,
+    required String date,
+    required String supplierId,
+    required String billNo,
+    required double amount,
+    required String purchaseStatus,
+    required String customerId,
+    required String paymentType,
+    String? paymentMethodId,
+    String? imageId,
+  }) async {
+    try {
+      final response = await _dio.patch(
+        '${ApiConstants.purchaseBills}/$id',
+        data: {
+          'date': date,
+          'supplierId': supplierId,
+          'billNo': billNo,
+          // Same "amount must be a string" quirk as create — see above.
+          'amount': amount.toString(),
+          'purchaseStatus': purchaseStatus,
+          'customerId': customerId,
+          'payment_type': paymentType,
+          'paymentMethodId': ?paymentMethodId,
+          'imageId': ?imageId,
+        },
+      );
+      final raw = response.data['data'];
+      if (raw is Map<String, dynamic> && raw['billNo'] != null) return PurchaseBill.fromJson(raw);
+
+      // Same 500-on-list quirk as create's refetch fallback — don't report
+      // the update as failed just because the follow-up GET can't confirm
+      // it; synthesize the record from what was just sent instead.
+      try {
+        final bills = await getPurchaseBills();
+        final match = bills.where((b) => b.id == id).toList();
+        if (match.isNotEmpty) return match.first;
+      } catch (_) {
+        // Fall through to the synthesized record below.
+      }
+      return PurchaseBill(
+        id: id,
+        date: DateTime.tryParse(date) ?? DateTime.now(),
+        billNo: billNo,
+        amount: amount,
+        purchaseStatus: purchaseStatus,
+        paymentType: paymentType,
+        customerId: customerId,
+        paymentMethodId: paymentMethodId,
       );
     } on DioException catch (e) {
       throw mapDioError(e);

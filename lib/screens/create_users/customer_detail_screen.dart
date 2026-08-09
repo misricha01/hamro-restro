@@ -8,8 +8,9 @@ import '../../providers/order_provider.dart' show LoadStatus;
 import '../../widgets/common/analytics_cards.dart';
 import '../analytics/sales_analytics_screen.dart' show InvoiceEmptyState;
 import '../finance/payments/payment_entry_screen.dart';
+import 'add_customer_screen.dart' show AddCustomerScreen;
 
-enum _CustomerMenuAction { remove, help }
+enum _CustomerMenuAction { edit, remove, help }
 
 /// Customer profile screen reached by tapping a row in [CustomerListScreen].
 /// Deletion calls [CustomerProvider.deleteCustomer] (`DELETE
@@ -29,6 +30,7 @@ class CustomerDetailScreen extends StatefulWidget {
 }
 
 class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
+  late Customer _customer = widget.customer;
   int _tabIndex = 0;
   bool _isDeleting = false;
 
@@ -36,7 +38,12 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
   void initState() {
     super.initState();
     final commentProvider = context.read<CustomerCommentProvider>();
-    WidgetsBinding.instance.addPostFrameCallback((_) => commentProvider.fetchComments(widget.customer.id));
+    WidgetsBinding.instance.addPostFrameCallback((_) => commentProvider.fetchComments(_customer.id));
+  }
+
+  Future<void> _edit() async {
+    final updated = await Navigator.push<Customer>(context, MaterialPageRoute(builder: (context) => AddCustomerScreen(existingCustomer: _customer)));
+    if (updated != null && mounted) setState(() => _customer = updated);
   }
 
   Future<void> _confirmRemove() async {
@@ -46,7 +53,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
         backgroundColor: AppTheme.surface,
         title: const Text('Remove Customer', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, decoration: TextDecoration.none)),
         content: Text(
-          "Remove ${widget.customer.customerName} from your customer list?",
+          "Remove ${_customer.customerName} from your customer list?",
           style: const TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none),
         ),
         actions: [
@@ -66,7 +73,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
     setState(() => _isDeleting = true);
     final provider = context.read<CustomerProvider>();
     final messenger = ScaffoldMessenger.of(context);
-    final success = await provider.deleteCustomer(widget.customer.id);
+    final success = await provider.deleteCustomer(_customer.id);
     if (!mounted) return;
 
     if (success) {
@@ -79,6 +86,8 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
 
   void _handleMenuAction(_CustomerMenuAction action) {
     switch (action) {
+      case _CustomerMenuAction.edit:
+        _edit();
       case _CustomerMenuAction.remove:
         _confirmRemove();
       case _CustomerMenuAction.help:
@@ -105,7 +114,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
           ),
         ),
         title: Text(
-          widget.customer.customerName,
+          _customer.customerName,
           style: const TextStyle(color: AppTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none),
         ),
         actions: [
@@ -121,6 +130,8 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                     color: AppTheme.surface,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: AppTheme.divider)),
                     itemBuilder: (context) => const [
+                      PopupMenuItem(value: _CustomerMenuAction.edit, child: _MenuRow(icon: Icons.edit_outlined, label: 'Edit Customer')),
+                      PopupMenuDivider(),
                       PopupMenuItem(value: _CustomerMenuAction.remove, child: _MenuRow(icon: Icons.delete_outline, label: 'Remove Customer', color: AppTheme.cancelled)),
                       PopupMenuDivider(),
                       PopupMenuItem(value: _CustomerMenuAction.help, child: _MenuRow(icon: Icons.help_outline, label: 'Help')),
@@ -149,14 +160,14 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                 index: _tabIndex,
                 children: [
                   _ProfileTab(
-                    customer: widget.customer,
+                    customer: _customer,
                     onPaymentIn: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentEntryScreen(isPaymentIn: true))),
                     onPaymentOut: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentEntryScreen(isPaymentIn: false))),
                   ),
                   const InvoiceEmptyState(entityName: 'Transactions'),
                   const InvoiceEmptyState(entityName: 'Invoice'),
                   const _CreditListTab(),
-                  _CommentsTab(customerId: widget.customer.id),
+                  _CommentsTab(customerId: _customer.id),
                 ],
               ),
             ),

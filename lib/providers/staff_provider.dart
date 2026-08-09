@@ -175,4 +175,44 @@ class StaffProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  bool isUnassigningRole = false;
+  String? unassignRoleErrorMessage;
+
+  /// Removes staff member [id]'s current role via RBAC
+  /// (`DELETE /api/rbac/assign-role/{userId}`) and clears the local [staff]
+  /// entry's displayed role. Returns whether it succeeded.
+  Future<bool> unassignRole(String id) async {
+    isUnassigningRole = true;
+    unassignRoleErrorMessage = null;
+    notifyListeners();
+
+    try {
+      await _rbacRepository.unassignRole(id);
+      staff = staff.map((s) {
+        if (s.id != id) return s;
+        return StaffMember(
+          id: s.id,
+          restaurantId: s.restaurantId,
+          fullname: s.fullname,
+          email: s.email,
+          role: '',
+          position: s.position,
+          isDefaultAdmin: s.isDefaultAdmin,
+          status: s.status,
+          createdAt: s.createdAt,
+        );
+      }).toList();
+      return true;
+    } on ApiException catch (e) {
+      unassignRoleErrorMessage = e.message;
+      return false;
+    } catch (_) {
+      unassignRoleErrorMessage = 'Something went wrong. Please try again.';
+      return false;
+    } finally {
+      isUnassigningRole = false;
+      notifyListeners();
+    }
+  }
 }

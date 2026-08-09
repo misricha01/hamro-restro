@@ -13,6 +13,11 @@ abstract class NotificationRepository {
     required String notificationMessage,
     required String type,
   });
+
+  /// `PATCH /api/notification/read` — `MarkAsReadDto` takes a bulk
+  /// `notificationIds` array, not a single id, so this accepts a list even
+  /// when callers only ever mark one notification at a time.
+  Future<void> markAsRead(List<String> ids);
 }
 
 class NotificationRepositoryImpl implements NotificationRepository {
@@ -61,6 +66,15 @@ class NotificationRepositoryImpl implements NotificationRepository {
         return matches.first;
       }
       throw const ApiException('Notification was created, but the list could not be refreshed.');
+    } on DioException catch (e) {
+      throw mapDioError(e);
+    }
+  }
+
+  @override
+  Future<void> markAsRead(List<String> ids) async {
+    try {
+      await _dio.patch('${ApiConstants.notifications}/read', data: {'notificationIds': ids});
     } on DioException catch (e) {
       throw mapDioError(e);
     }

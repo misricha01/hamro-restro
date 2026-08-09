@@ -2,16 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/stock/stock_group_model.dart';
+import '../../data/models/stock/stock_model.dart';
 import '../../data/models/unit/unit_model.dart';
+import '../../providers/order_provider.dart' show LoadStatus;
+import '../../providers/stock_group_provider.dart';
 import '../../providers/stock_provider.dart';
+import '../../providers/unit_provider.dart';
 import '../../widgets/common/select_unit_sheet.dart';
 import '../../widgets/common/select_stock_group_sheet.dart';
 
 /// "Add Stock Item" form, backed by [StockProvider.createStock]
 /// (`POST /api/stock`). `Reorder Level`/`Reorder QTY` have no backend field
-/// on this API — they stay as UI-only inputs and aren't sent.
+/// on this API — they stay as UI-only inputs and aren't sent. Also reused
+/// for editing (pass [existingStock]), which calls
+/// [StockProvider.updateStock] (`PATCH /api/stock/{id}`) instead — the
+/// picked Unit/Stock Group are resolved from the stock item's plain
+/// `unitId`/`stockGroupId` once [UnitProvider]/[StockGroupProvider] have
+/// loaded (both are kicked off in [initState] if not already fetched).
 class AddStockItemScreen extends StatefulWidget {
-  const AddStockItemScreen({super.key});
+  final Stock? existingStock;
+
+  const AddStockItemScreen({super.key, this.existingStock});
+
+  bool get isEditing => existingStock != null;
 
   @override
   State<AddStockItemScreen> createState() => _AddStockItemScreenState();
@@ -32,6 +45,48 @@ class _AddStockItemScreenState extends State<AddStockItemScreen> {
   bool _multipleUnit = false;
   bool _showAdditionalDetails = false;
   bool _unitError = false;
+  bool _prefillApplied = false;
+
+  static String _trimNum(double v) => v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toString();
+
+  @override
+  void initState() {
+    super.initState();
+    final stock = widget.existingStock;
+    if (stock != null) {
+      _itemNameController.text = stock.itemName;
+      _purchasePriceController.text = _trimNum(stock.defaultPrice);
+      _quantityController.text = _trimNum(stock.quantity);
+      _rateController.text = _trimNum(stock.rate);
+      _descriptionController.text = stock.description ?? '';
+      if (stock.description != null && stock.description!.isNotEmpty) _showAdditionalDetails = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final unitProvider = context.read<UnitProvider>();
+        if (unitProvider.status == LoadStatus.idle) unitProvider.fetchUnits();
+        final groupProvider = context.read<StockGroupProvider>();
+        if (groupProvider.status == LoadStatus.idle) groupProvider.fetchStockGroups();
+      });
+    }
+  }
+
+  void _tryApplyPrefill(BuildContext context) {
+    final stock = widget.existingStock;
+    if (stock == null || _prefillApplied) return;
+
+    final unitProvider = context.watch<UnitProvider>();
+    final groupProvider = context.watch<StockGroupProvider>();
+    if (unitProvider.status != LoadStatus.loaded || groupProvider.status != LoadStatus.loaded) return;
+
+    _prefillApplied = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() {
+        _selectedUnit = stock.unitId == null ? null : unitProvider.units.where((u) => u.id == stock.unitId).firstOrNull;
+        _selectedGroup = stock.stockGroupId == null ? null : groupProvider.groups.where((g) => g.id == stock.stockGroupId).firstOrNull;
+      });
+    });
+  }
 
   @override
   void dispose() {
@@ -52,29 +107,46 @@ class _AddStockItemScreenState extends State<AddStockItemScreen> {
     if (itemName.isEmpty || _unitError) return;
 
     final provider = context.read<StockProvider>();
-    final stock = await provider.createStock(
-      itemName: itemName,
-      defaultPrice: double.tryParse(_purchasePriceController.text.trim()) ?? 0,
-      quantity: double.tryParse(_quantityController.text.trim()) ?? 0,
-      rate: double.tryParse(_rateController.text.trim()) ?? 0,
-      description: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
-      unitId: _selectedUnit!.id!,
-      stockGroupId: _selectedGroup?.id,
-    );
+    final defaultPrice = double.tryParse(_purchasePriceController.text.trim()) ?? 0;
+    final quantity = double.tryParse(_quantityController.text.trim()) ?? 0;
+    final rate = double.tryParse(_rateController.text.trim()) ?? 0;
+    final description = _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim();
+
+    final stock = widget.isEditing
+        ? await provider.updateStock(
+            id: widget.existingStock!.id,
+            itemName: itemName,
+            defaultPrice: defaultPrice,
+            quantity: quantity,
+            rate: rate,
+            description: description,
+            unitId: _selectedUnit!.id,
+            stockGroupId: _selectedGroup?.id,
+          )
+        : await provider.createStock(
+            itemName: itemName,
+            defaultPrice: defaultPrice,
+            quantity: quantity,
+            rate: rate,
+            description: description,
+            unitId: _selectedUnit!.id!,
+            stockGroupId: _selectedGroup?.id,
+          );
 
     if (!mounted) return;
     if (stock != null) {
       Navigator.pop(context, stock);
     } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(provider.createErrorMessage ?? 'Something went wrong. Please try again.')));
+      final message = widget.isEditing ? provider.updateErrorMessage : provider.createErrorMessage;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message ?? 'Something went wrong. Please try again.')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isCreating = context.watch<StockProvider>().isCreating;
+    _tryApplyPrefill(context);
+    final provider = context.watch<StockProvider>();
+    final isSaving = widget.isEditing ? provider.isUpdating : provider.isCreating;
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -95,9 +167,9 @@ class _AddStockItemScreenState extends State<AddStockItemScreen> {
             ),
           ),
         ),
-        title: const Text(
-          'Add Stock Item',
-          style: TextStyle(
+        title: Text(
+          widget.isEditing ? 'Edit Stock Item' : 'Add Stock Item',
+          style: const TextStyle(
             color: AppTheme.textPrimary,
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -334,7 +406,7 @@ class _AddStockItemScreenState extends State<AddStockItemScreen> {
           children: [
             Expanded(
               child: TextButton(
-                onPressed: isCreating ? null : () => Navigator.pop(context),
+                onPressed: isSaving ? null : () => Navigator.pop(context),
                 style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
                 child: const Text(
                   'Back',
@@ -350,17 +422,17 @@ class _AddStockItemScreenState extends State<AddStockItemScreen> {
             Expanded(
               flex: 2,
               child: ElevatedButton(
-                onPressed: isCreating ? null : _save,
+                onPressed: isSaving ? null : _save,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primary,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
-                child: isCreating
+                child: isSaving
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Text(
-                        'Save Stock Item',
-                        style: TextStyle(
+                    : Text(
+                        widget.isEditing ? 'Update Stock Item' : 'Save Stock Item',
+                        style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w600,
                           decoration: TextDecoration.none,

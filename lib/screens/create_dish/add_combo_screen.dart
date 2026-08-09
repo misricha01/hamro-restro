@@ -1,20 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/network/api_client.dart';
 import '../../core/theme/app_theme.dart';
+import '../../data/models/combo_offer/combo_offer_model.dart';
+import '../../data/models/media/media_model.dart';
 import '../../providers/combo_offer_provider.dart';
+import '../../widgets/common/media_upload_helper.dart';
 import 'select_combo_items_screen.dart';
 
 /// "Add Combo Dish" form reached from the Combo Offer screen's
 /// "Create New Combo Offer" button and the Menu screen's "+ Add" pills.
 /// Backed by [ComboOfferProvider.createComboOffer] (`POST /api/combo-offer`).
-/// Sub-Menu / Category / Dish Type / Preparation Time / Combo Photo from the
-/// original design have no backend counterpart on a combo offer (those are
-/// per-dish concepts, or — for Combo Photo — there's no media-upload flow
-/// wired up anywhere in this app yet) and are dropped. Start/End dates are
-/// added since the backend requires them (`startsAt`/`endsAt`) but the
-/// original design didn't have fields for them.
+/// Sub-Menu / Category / Dish Type / Preparation Time from the original
+/// design have no backend counterpart on a combo offer (those are per-dish
+/// concepts) and are dropped. Combo Photo is wired to the real
+/// `comboPhoto` field via the shared media-upload flow (mirrors Add Dish's
+/// Dish Photo). Start/End dates are added since the backend requires them
+/// (`startsAt`/`endsAt`) but the original design didn't have fields for
+/// them. Also reused for editing (pass [existingCombo]), which calls
+/// [ComboOfferProvider.updateComboOffer] (`PATCH /api/combo-offer/{id}`)
+/// instead.
 class AddComboScreen extends StatefulWidget {
-  const AddComboScreen({super.key});
+  final ComboOffer? existingCombo;
+
+  const AddComboScreen({super.key, this.existingCombo});
+
+  bool get isEditing => existingCombo != null;
 
   @override
   State<AddComboScreen> createState() => _AddComboScreenState();
@@ -29,10 +40,26 @@ class _AddComboScreenState extends State<AddComboScreen> {
   List<String> _selectedItemIds = [];
   DateTime _startsAt = DateTime.now();
   DateTime _endsAt = DateTime.now().add(const Duration(days: 30));
+  UploadedMedia? _uploadedPhoto;
 
   bool _nameError = false;
   bool _itemsError = false;
   bool _offerPriceError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final combo = widget.existingCombo;
+    if (combo != null) {
+      _nameController.text = combo.name;
+      _offerPriceController.text = combo.offerPrice == combo.offerPrice.roundToDouble() ? combo.offerPrice.toStringAsFixed(0) : combo.offerPrice.toString();
+      _hsCodeController.text = combo.hsCode ?? '';
+      _descriptionController.text = combo.description ?? '';
+      _selectedItemIds = List.of(combo.dishIds);
+      _startsAt = combo.startsAt;
+      _endsAt = combo.endsAt;
+    }
+  }
 
   @override
   void dispose() {
@@ -54,6 +81,11 @@ class _AddComboScreenState extends State<AddComboScreen> {
         _itemsError = false;
       });
     }
+  }
+
+  Future<void> _pickImageSource() async {
+    final media = await pickAndUploadImage(context);
+    if (media != null) setState(() => _uploadedPhoto = media);
   }
 
   Future<void> _pickDate({required bool isStart}) async {
@@ -85,23 +117,40 @@ class _AddComboScreenState extends State<AddComboScreen> {
     if (_nameError || _itemsError || _offerPriceError) return;
 
     final provider = context.read<ComboOfferProvider>();
-    final offer = await provider.createComboOffer(
-      name: name,
-      description: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
-      hsCode: _hsCodeController.text.trim().isEmpty ? null : _hsCodeController.text.trim(),
-      dishIds: _selectedItemIds,
-      offerPrice: offerPrice!,
-      startsAt: _startsAt,
-      endsAt: _endsAt,
-    );
+    final description = _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim();
+    final hsCode = _hsCodeController.text.trim().isEmpty ? null : _hsCodeController.text.trim();
+
+    final offer = widget.isEditing
+        ? await provider.updateComboOffer(
+            id: widget.existingCombo!.id,
+            name: name,
+            description: description,
+            hsCode: hsCode,
+            // A newly-uploaded photo wins; otherwise keep whatever the
+            // combo already had rather than clearing it.
+            comboPhoto: _uploadedPhoto?.id ?? widget.existingCombo!.comboPhoto,
+            dishIds: _selectedItemIds,
+            offerPrice: offerPrice!,
+            startsAt: _startsAt,
+            endsAt: _endsAt,
+          )
+        : await provider.createComboOffer(
+            name: name,
+            description: description,
+            hsCode: hsCode,
+            comboPhoto: _uploadedPhoto?.id,
+            dishIds: _selectedItemIds,
+            offerPrice: offerPrice!,
+            startsAt: _startsAt,
+            endsAt: _endsAt,
+          );
     if (!mounted) return;
 
     if (offer != null) {
       Navigator.pop(context, offer);
     } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(provider.createErrorMessage ?? 'Something went wrong. Please try again.')));
+      final message = widget.isEditing ? provider.updateErrorMessage : provider.createErrorMessage;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message ?? 'Something went wrong. Please try again.')));
     }
   }
 
@@ -109,7 +158,8 @@ class _AddComboScreenState extends State<AddComboScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isCreating = context.watch<ComboOfferProvider>().isCreating;
+    final provider = context.watch<ComboOfferProvider>();
+    final isSaving = widget.isEditing ? provider.isUpdating : provider.isCreating;
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -127,9 +177,9 @@ class _AddComboScreenState extends State<AddComboScreen> {
             ),
           ),
         ),
-        title: const Text(
-          'Add Combo Dish',
-          style: TextStyle(color: AppTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none),
+        title: Text(
+          widget.isEditing ? 'Edit Combo Dish' : 'Add Combo Dish',
+          style: const TextStyle(color: AppTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none),
         ),
       ),
       body: ListView(
@@ -236,6 +286,19 @@ class _AddComboScreenState extends State<AddComboScreen> {
           const _SectionHeader(title: 'Description'),
           const SizedBox(height: 12),
           _AppTextField(controller: _descriptionController, hint: 'Write a description...', maxLines: 4),
+          const SizedBox(height: 24),
+
+          const _SectionHeader(title: 'Combo Photo'),
+          const SizedBox(height: 12),
+          _UploadBox(
+            label: _uploadedPhoto != null
+                ? 'Photo uploaded'
+                : (widget.existingCombo?.comboPhotoUrl != null ? 'Tap to change photo' : 'Tap here to select or upload photos'),
+            previewUrl: _uploadedPhoto?.url != null
+                ? '${ApiClient.mediaBaseUrl}${_uploadedPhoto!.url}'
+                : (widget.existingCombo?.comboPhotoUrl != null ? '${ApiClient.mediaBaseUrl}${widget.existingCombo!.comboPhotoUrl}' : null),
+            onTap: _pickImageSource,
+          ),
         ],
       ),
       bottomNavigationBar: Container(
@@ -245,7 +308,7 @@ class _AddComboScreenState extends State<AddComboScreen> {
           children: [
             Expanded(
               child: TextButton(
-                onPressed: isCreating ? null : () => Navigator.pop(context),
+                onPressed: isSaving ? null : () => Navigator.pop(context),
                 style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
                 child: const Text('Back', style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
               ),
@@ -254,15 +317,15 @@ class _AddComboScreenState extends State<AddComboScreen> {
             Expanded(
               flex: 2,
               child: ElevatedButton(
-                onPressed: isCreating ? null : _save,
+                onPressed: isSaving ? null : _save,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primary,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
-                child: isCreating
+                child: isSaving
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Text('Save', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
+                    : Text(widget.isEditing ? 'Update' : 'Save', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
               ),
             ),
           ],
@@ -329,6 +392,54 @@ class _FieldLabel extends StatelessWidget {
           TextSpan(text: label),
           if (required) const TextSpan(text: ' *', style: TextStyle(color: AppTheme.cancelled)),
         ],
+      ),
+    );
+  }
+}
+
+class _UploadBox extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  final String? previewUrl;
+
+  const _UploadBox({required this.label, required this.onTap, this.previewUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 14),
+        decoration: BoxDecoration(
+          color: AppTheme.card,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppTheme.divider),
+        ),
+        child: Row(
+          children: [
+            if (previewUrl != null) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  previewUrl!,
+                  width: 36,
+                  height: 36,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.upload_outlined, color: AppTheme.textSecondary),
+                ),
+              ),
+              const SizedBox(width: 10),
+            ] else ...[
+              const Icon(Icons.upload_outlined, color: AppTheme.textSecondary),
+              const SizedBox(width: 10),
+            ],
+            Expanded(
+              child: Text(label, style: const TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none)),
+            ),
+          ],
+        ),
       ),
     );
   }

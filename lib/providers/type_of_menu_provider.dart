@@ -53,4 +53,57 @@ class TypeOfMenuProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  bool isUpdating = false;
+  String? updateErrorMessage;
+
+  /// Updates a sub-menu and replaces it in [types] on success. Returns the
+  /// updated [TypeOfMenu], or `null` if the call failed (see
+  /// [updateErrorMessage]).
+  Future<TypeOfMenu?> updateTypeOfMenu({required String id, required String name, required String description, required bool status}) async {
+    isUpdating = true;
+    updateErrorMessage = null;
+    notifyListeners();
+
+    try {
+      final type = await _repository.updateTypeOfMenu(id: id, name: name, description: description, status: status);
+      types = types.map((t) => t.id == id ? type : t).toList();
+      return type;
+    } on ApiException catch (e) {
+      updateErrorMessage = e.message;
+      return null;
+    } catch (_) {
+      updateErrorMessage = 'Something went wrong. Please try again.';
+      return null;
+    } finally {
+      isUpdating = false;
+      notifyListeners();
+    }
+  }
+
+  bool isDeleting = false;
+  String? deleteErrorMessage;
+
+  /// Deletes a sub-menu and removes it from [types] on success. Returns
+  /// whether the call succeeded (see [deleteErrorMessage] on failure).
+  Future<bool> deleteTypeOfMenu(String id) async {
+    isDeleting = true;
+    deleteErrorMessage = null;
+    notifyListeners();
+
+    try {
+      await _repository.deleteTypeOfMenu(id);
+      types = types.where((t) => t.id != id).toList();
+      return true;
+    } on ApiException catch (e) {
+      deleteErrorMessage = e.message;
+      return false;
+    } catch (_) {
+      deleteErrorMessage = 'Something went wrong. Please try again.';
+      return false;
+    } finally {
+      isDeleting = false;
+      notifyListeners();
+    }
+  }
 }

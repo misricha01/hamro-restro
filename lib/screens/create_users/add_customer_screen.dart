@@ -21,7 +21,11 @@ import '../../providers/table_provider.dart';
 /// `customerGroupId` now has a real picker via [CustomerGroupProvider]
 /// (backend: `/api/customer-group`).
 class AddCustomerScreen extends StatefulWidget {
-  const AddCustomerScreen({super.key});
+  final Customer? existingCustomer;
+
+  const AddCustomerScreen({super.key, this.existingCustomer});
+
+  bool get isEditing => existingCustomer != null;
 
   @override
   State<AddCustomerScreen> createState() => _AddCustomerScreenState();
@@ -38,14 +42,50 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
   final _commentController = TextEditingController();
 
   CustomerGroup? _customerGroup;
-  Dish? _favouriteDish;
-  RestaurantTable? _preferredSeating;
+  // Lightweight id+name pair rather than the picker's full [Dish]/
+  // [RestaurantTable] type, so editing can prefill directly from the
+  // customer's already-nested [FavouriteDish]/[PreferredSeating] without
+  // needing to re-fetch and resolve full objects by id.
+  ({String id, String name})? _favouriteDish;
+  ({String id, String name})? _preferredSeating;
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
 
   bool _isDirty = false;
   bool _nameError = false;
   bool _contactError = false;
+
+  static TimeOfDay? _parseTime(String? hhmm) {
+    if (hhmm == null) return null;
+    final parts = hhmm.split(':');
+    if (parts.length != 2) return null;
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null || minute == null) return null;
+    return TimeOfDay(hour: hour, minute: minute);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final customer = widget.existingCustomer;
+    if (customer != null) {
+      _nameController.text = customer.customerName;
+      _contactController.text = customer.phoneNumber;
+      _emailController.text = customer.emailAddress ?? '';
+      _companyController.text = customer.companyName ?? '';
+      _panVatController.text = customer.panVatNumber ?? '';
+      _discountController.text = customer.discount ?? '';
+      _allergiesController.text = customer.allergies ?? '';
+      _customerGroup = customer.customerGroup;
+      final favouriteDish = customer.favouriteDish;
+      if (favouriteDish != null) _favouriteDish = (id: favouriteDish.id, name: favouriteDish.dishName);
+      final preferredSeating = customer.preferredSeating;
+      if (preferredSeating != null) _preferredSeating = (id: preferredSeating.id, name: preferredSeating.tableName);
+      _startTime = _parseTime(customer.startPreferredTime);
+      _endTime = _parseTime(customer.endPreferredTime);
+    }
+  }
 
   @override
   void dispose() {
@@ -78,7 +118,7 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
     final result = await SelectFavouriteDishSheet.show(context);
     if (result != null) {
       setState(() {
-      _favouriteDish = result;
+      _favouriteDish = (id: result.id, name: result.dishName);
       _isDirty = true;
     });
     }
@@ -88,7 +128,7 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
     final result = await SelectPreferredSeatingSheet.show(context);
     if (result != null) {
       setState(() {
-      _preferredSeating = result;
+      _preferredSeating = (id: result.id, name: result.tableName);
       _isDirty = true;
     });
     }
@@ -149,29 +189,55 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
     final provider = context.read<CustomerProvider>();
     final messenger = ScaffoldMessenger.of(context);
     final comment = _commentController.text.trim();
+    final emailAddress = _emailController.text.trim().isEmpty ? null : _emailController.text.trim();
+    final companyName = _companyController.text.trim().isEmpty ? null : _companyController.text.trim();
+    final panVatNumber = _panVatController.text.trim().isEmpty ? null : _panVatController.text.trim();
+    final discount = _discountController.text.trim().isEmpty ? null : _discountController.text.trim();
+    final allergies = _allergiesController.text.trim().isEmpty ? null : _allergiesController.text.trim();
+    final startPreferredTime = _startTime == null ? null : _formatTime(_startTime!);
+    final endPreferredTime = _endTime == null ? null : _formatTime(_endTime!);
+    final comments = comment.isEmpty ? const <String>[] : [comment];
 
-    final customer = await provider.createCustomer(
-      customerName: name,
-      phoneNumber: phone,
-      emailAddress: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
-      companyName: _companyController.text.trim().isEmpty ? null : _companyController.text.trim(),
-      panVatNumber: _panVatController.text.trim().isEmpty ? null : _panVatController.text.trim(),
-      discount: _discountController.text.trim().isEmpty ? null : _discountController.text.trim(),
-      customerGroupId: _customerGroup?.id,
-      favouriteDishId: _favouriteDish?.id,
-      preferredSeatingId: _preferredSeating?.id,
-      allergies: _allergiesController.text.trim().isEmpty ? null : _allergiesController.text.trim(),
-      startPreferredTime: _startTime == null ? null : _formatTime(_startTime!),
-      endPreferredTime: _endTime == null ? null : _formatTime(_endTime!),
-      comments: comment.isEmpty ? const [] : [comment],
-    );
+    final customer = widget.isEditing
+        ? await provider.updateCustomer(
+            id: widget.existingCustomer!.id,
+            customerName: name,
+            phoneNumber: phone,
+            emailAddress: emailAddress,
+            companyName: companyName,
+            panVatNumber: panVatNumber,
+            discount: discount,
+            customerGroupId: _customerGroup?.id,
+            favouriteDishId: _favouriteDish?.id,
+            preferredSeatingId: _preferredSeating?.id,
+            allergies: allergies,
+            startPreferredTime: startPreferredTime,
+            endPreferredTime: endPreferredTime,
+            comments: comments,
+          )
+        : await provider.createCustomer(
+            customerName: name,
+            phoneNumber: phone,
+            emailAddress: emailAddress,
+            companyName: companyName,
+            panVatNumber: panVatNumber,
+            discount: discount,
+            customerGroupId: _customerGroup?.id,
+            favouriteDishId: _favouriteDish?.id,
+            preferredSeatingId: _preferredSeating?.id,
+            allergies: allergies,
+            startPreferredTime: startPreferredTime,
+            endPreferredTime: endPreferredTime,
+            comments: comments,
+          );
     if (!mounted) return;
 
     if (customer != null) {
-      messenger.showSnackBar(const SnackBar(content: Text('Customer created successfully')));
+      messenger.showSnackBar(SnackBar(content: Text(widget.isEditing ? 'Customer updated successfully' : 'Customer created successfully')));
       Navigator.pop(context, customer);
     } else {
-      messenger.showSnackBar(SnackBar(content: Text(provider.createErrorMessage ?? 'Failed to create customer')));
+      final message = widget.isEditing ? provider.updateErrorMessage : provider.createErrorMessage;
+      messenger.showSnackBar(SnackBar(content: Text(message ?? 'Failed to save customer')));
     }
   }
 
@@ -193,9 +259,9 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
             ),
           ),
         ),
-        title: const Text(
-          'Add Customer',
-          style: TextStyle(color: AppTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none),
+        title: Text(
+          widget.isEditing ? 'Edit Customer' : 'Add Customer',
+          style: const TextStyle(color: AppTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none),
         ),
       ),
       body: ListView(
@@ -282,12 +348,12 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
 
           const _FieldLabel(label: 'Favourite Dish', required: false),
           const SizedBox(height: 8),
-          _SelectField(hint: 'Select Favourite Dish', value: _favouriteDish?.dishName, onTap: _pickFavouriteDish),
+          _SelectField(hint: 'Select Favourite Dish', value: _favouriteDish?.name, onTap: _pickFavouriteDish),
           const SizedBox(height: 20),
 
           const _FieldLabel(label: 'Preferred Seating', required: false),
           const SizedBox(height: 8),
-          _SelectField(hint: 'Select Preferred Table', value: _preferredSeating?.tableName, onTap: _pickPreferredSeating),
+          _SelectField(hint: 'Select Preferred Table', value: _preferredSeating?.name, onTap: _pickPreferredSeating),
           const SizedBox(height: 20),
 
           Row(
@@ -348,16 +414,17 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
               flex: 2,
               child: Consumer<CustomerProvider>(
                 builder: (context, provider, _) {
+                  final isSaving = widget.isEditing ? provider.isUpdating : provider.isCreating;
                   return ElevatedButton(
-                    onPressed: provider.isCreating ? null : _saveCustomer,
+                    onPressed: isSaving ? null : _saveCustomer,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primary,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
-                    child: provider.isCreating
+                    child: isSaving
                         ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
-                        : const Text('Save Customer', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
+                        : Text(widget.isEditing ? 'Update Customer' : 'Save Customer', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
                   );
                 },
               ),

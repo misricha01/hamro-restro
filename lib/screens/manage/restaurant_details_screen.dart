@@ -8,7 +8,7 @@ import '../../models/update_restaurant_request.dart';
 import '../../services/restaurant_service.dart';
 import '../../widgets/common/finance_form_fields.dart' show PhoneField;
 import '../../widgets/common/location_picker_sheets.dart';
-import '../create_dish/add_dish_screen.dart' show ImageSourceSheet;
+import '../../widgets/common/media_upload_helper.dart';
 
 /// Result payload returned when the Restaurant Details form is saved.
 /// [typeId]/[typeName] describe the selected entry from `GET
@@ -92,9 +92,9 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> {
   final _tiktokController = TextEditingController();
   final _googleReviewController = TextEditingController();
 
-  String? _logoImageSource;
   String? _logoId;
   String? _existingLogoUrl;
+  String? _uploadedLogoPreviewUrl;
   String _dialCode = '+977';
   String _timeZone = 'Asia/Kathmandu';
   String _country = 'Nepal';
@@ -115,7 +115,6 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> {
   }
 
   void _applyInitial(RestaurantDetails initial) {
-    _logoImageSource = initial.logoImageSource;
     _nameController.text = initial.restaurantName;
     _phoneController.text = initial.phone;
     _timeZone = initial.timeZone;
@@ -199,8 +198,14 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> {
   }
 
   Future<void> _pickLogo() async {
-    final result = await ImageSourceSheet.show(context, includeLibrary: false);
-    if (result != null) setState(() { _logoImageSource = result; _isDirty = true; });
+    final media = await pickAndUploadImage(context, includeLibrary: false);
+    if (media != null) {
+      setState(() {
+        _logoId = media.id;
+        _uploadedLogoPreviewUrl = media.url == null ? null : '${ApiClient.mediaBaseUrl}${media.url}';
+        _isDirty = true;
+      });
+    }
   }
 
   Future<void> _pickTimeZone() async {
@@ -263,7 +268,6 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> {
       Navigator.pop(
         context,
         RestaurantDetails(
-          logoImageSource: _logoImageSource,
           restaurantName: updated.restaurantName,
           phone: phone,
           timeZone: _timeZone,
@@ -378,10 +382,10 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> {
         const _FieldLabel(label: 'Restaurant Logo Photo', required: false),
         const SizedBox(height: 8),
         _UploadBox(
-          label: _logoImageSource != null
-              ? 'Selected via $_logoImageSource'
+          label: _uploadedLogoPreviewUrl != null
+              ? 'Photo uploaded'
               : (_existingLogoUrl != null ? 'Tap to change photo' : 'Tap here to select or upload photos'),
-          previewUrl: _logoImageSource == null ? _existingLogoUrl : null,
+          previewUrl: _uploadedLogoPreviewUrl ?? _existingLogoUrl,
           onTap: _pickLogo,
         ),
         const SizedBox(height: 20),

@@ -79,6 +79,53 @@ class SupplierTransactionProvider extends ChangeNotifier {
     }
   }
 
+  bool isUpdating = false;
+  String? updateErrorMessage;
+
+  /// Updates a transaction and replaces it in [transactions] on success.
+  /// Returns the updated [SupplierTransaction], or `null` if the call
+  /// failed (see [updateErrorMessage]).
+  Future<SupplierTransaction?> updateSupplierTransaction({
+    required String id,
+    required String supplierId,
+    required String date,
+    required String particulars,
+    double? toReceived,
+    double? toPay,
+    required String paymentMethodId,
+    required double totalPayment,
+    String? remarks,
+  }) async {
+    isUpdating = true;
+    updateErrorMessage = null;
+    notifyListeners();
+
+    try {
+      final transaction = await _repository.updateSupplierTransaction(
+        id: id,
+        supplierId: supplierId,
+        date: date,
+        particulars: particulars,
+        toReceived: toReceived,
+        toPay: toPay,
+        paymentMethodId: paymentMethodId,
+        totalPayment: totalPayment,
+        remarks: remarks,
+      );
+      transactions = transactions.map((t) => t.id == id ? transaction : t).toList();
+      return transaction;
+    } on ApiException catch (e) {
+      updateErrorMessage = e.message;
+      return null;
+    } catch (_) {
+      updateErrorMessage = 'Something went wrong. Please try again.';
+      return null;
+    } finally {
+      isUpdating = false;
+      notifyListeners();
+    }
+  }
+
   bool isDeleting = false;
   String? deleteErrorMessage;
 

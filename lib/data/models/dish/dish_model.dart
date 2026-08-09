@@ -83,17 +83,24 @@ class Dish {
       },
       dishPhotoUrl: rawPhoto is Map<String, dynamic> ? rawPhoto['url'] as String? : null,
       description: json['description'] as String?,
-      price: (json['price'] as num?)?.toDouble(),
+      // Confirmed live: like AddOn.price and PurchaseBill.amount, these
+      // numeric fields can come back as strings (e.g. "100.00") rather than
+      // numbers — parse defensively instead of assuming a shape.
+      price: json['price'] == null ? null : double.tryParse(json['price'].toString()),
       unitId: json['unitId']?.toString(),
-      cogs: (json['cogs'] as num?)?.toDouble(),
+      cogs: json['cogs'] == null ? null : double.tryParse(json['cogs'].toString()),
       discountType: json['discountType'] as String?,
-      discount: (json['discount'] as num?)?.toDouble(),
-      priceAfterDiscount: (json['priceAfterDiscount'] as num?)?.toDouble(),
+      discount: json['discount'] == null ? null : double.tryParse(json['discount'].toString()),
+      priceAfterDiscount: json['priceAfterDiscount'] == null ? null : double.tryParse(json['priceAfterDiscount'].toString()),
       variantIds: variantIds.map((e) => e.toString()).toList(),
       addonIds: addonIds.map((e) => e.toString()).toList(),
-      dishTypeId: json['dishTypeId'].toString(),
+      // `.toString()` on an actual null silently produces the 4-char string
+      // "null" rather than staying null — confirmed live: a dish with no
+      // real dish-type/category assigned was sending that literal string
+      // back as an id on update, which the backend doesn't handle gracefully.
+      dishTypeId: json['dishTypeId']?.toString() ?? '',
       typeOfMenuId: json['typeOfMenuId']?.toString(),
-      menuCategoryId: json['menuCategoryId'].toString(),
+      menuCategoryId: json['menuCategoryId']?.toString() ?? '',
       available: json['available'] as bool? ?? true,
       stockConsumptions: stockConsumptions.map((e) => DishStockConsumption.fromJson(e as Map<String, dynamic>)).toList(),
     );

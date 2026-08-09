@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/network/api_client.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/addon/addon_model.dart';
 import '../../data/models/category/category_model.dart';
+import '../../data/models/dish/dish_model.dart';
 import '../../data/models/dish_type/dish_type_model.dart';
+import '../../data/models/media/media_model.dart';
 import '../../data/models/type_of_menu/type_of_menu_model.dart';
 import '../../data/models/unit/unit_model.dart';
 import '../../data/models/variant/variant_model.dart';
@@ -15,6 +18,8 @@ import '../../providers/order_provider.dart' show LoadStatus;
 import '../../providers/type_of_menu_provider.dart';
 import '../../providers/unit_provider.dart';
 import '../../providers/variant_provider.dart';
+import '../../widgets/common/edit_delete_actions_sheet.dart';
+import '../../widgets/common/media_upload_helper.dart';
 import 'add_addon_screen.dart' show AddAddOnScreen;
 import 'add_dish_type_screen.dart' show AddDishTypeScreen;
 
@@ -692,6 +697,42 @@ class _SelectDishTypeSheetState extends State<SelectDishTypeSheet> {
     Navigator.pop(context, created);
   }
 
+  Future<void> _openActions(DishType dishType) async {
+    final action = await EditDeleteActionsSheet.show(context, title: dishType.dishTypeName);
+    if (!context.mounted) return;
+    if (action == 'edit') {
+      await Navigator.push<DishType>(context, MaterialPageRoute(builder: (context) => AddDishTypeScreen(existingDishType: dishType)));
+    } else if (action == 'delete') {
+      await _confirmDeleteDishType(dishType);
+    }
+  }
+
+  Future<void> _confirmDeleteDishType(DishType dishType) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surface,
+        title: const Text('Delete Dish Type', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, decoration: TextDecoration.none)),
+        content: Text(
+          'Remove "${dishType.dishTypeName}"? This cannot be undone.',
+          style: const TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none))),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete', style: TextStyle(color: AppTheme.cancelled, fontWeight: FontWeight.w700, decoration: TextDecoration.none))),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    final provider = context.read<DishTypeProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    final success = await provider.deleteDishType(dishType.id);
+    if (!success && context.mounted) {
+      messenger.showSnackBar(SnackBar(content: Text(provider.deleteErrorMessage ?? 'Failed to delete dish type')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final dishTypeProvider = context.watch<DishTypeProvider>();
@@ -842,13 +883,23 @@ class _SelectDishTypeSheetState extends State<SelectDishTypeSheet> {
                   children: [
                     Icon(style?.icon ?? Icons.local_dining_outlined, color: style?.color ?? AppTheme.accent, size: 20),
                     const SizedBox(width: 14),
-                    Text(
-                      item.dishTypeName,
-                      style: const TextStyle(
-                        color: AppTheme.textPrimary,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        decoration: TextDecoration.none,
+                    Expanded(
+                      child: Text(
+                        item.dishTypeName,
+                        style: const TextStyle(
+                          color: AppTheme.textPrimary,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          decoration: TextDecoration.none,
+                        ),
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () => _openActions(item),
+                      borderRadius: BorderRadius.circular(8),
+                      child: const Padding(
+                        padding: EdgeInsets.all(4),
+                        child: Icon(Icons.more_vert, color: AppTheme.textSecondary, size: 18),
                       ),
                     ),
                   ],
@@ -1136,6 +1187,48 @@ class _SelectAddOnsSheetState extends State<SelectAddOnsSheet> {
     setState(() => _selectedNames.add(created.addonName));
   }
 
+  Future<void> _openActions(AddOn addon) async {
+    final action = await EditDeleteActionsSheet.show(context, title: addon.addonName);
+    if (!context.mounted) return;
+    if (action == 'edit') {
+      final oldName = addon.addonName;
+      final updated = await Navigator.push<AddOn>(context, MaterialPageRoute(builder: (context) => AddAddOnScreen(existingAddOn: addon)));
+      if (updated != null && mounted && _selectedNames.remove(oldName)) {
+        setState(() => _selectedNames.add(updated.addonName));
+      }
+    } else if (action == 'delete') {
+      await _confirmDeleteAddOn(addon);
+    }
+  }
+
+  Future<void> _confirmDeleteAddOn(AddOn addon) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surface,
+        title: const Text('Delete Add-On', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, decoration: TextDecoration.none)),
+        content: Text(
+          'Remove "${addon.addonName}"? This cannot be undone.',
+          style: const TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none))),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete', style: TextStyle(color: AppTheme.cancelled, fontWeight: FontWeight.w700, decoration: TextDecoration.none))),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    final provider = context.read<AddOnProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    final success = await provider.deleteAddOn(addon.id);
+    if (success) {
+      setState(() => _selectedNames.remove(addon.addonName));
+    } else if (context.mounted) {
+      messenger.showSnackBar(SnackBar(content: Text(provider.deleteErrorMessage ?? 'Failed to delete add-on')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final addOnProvider = context.watch<AddOnProvider>();
@@ -1406,6 +1499,14 @@ class _SelectAddOnsSheetState extends State<SelectAddOnsSheet> {
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                         decoration: TextDecoration.none,
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () => _openActions(item),
+                      borderRadius: BorderRadius.circular(8),
+                      child: const Padding(
+                        padding: EdgeInsets.only(left: 8),
+                        child: Icon(Icons.more_vert, color: AppTheme.textSecondary, size: 18),
                       ),
                     ),
                   ],
@@ -2627,6 +2728,48 @@ class _EditVariantScreenState extends State<EditVariantScreen> {
     });
   }
 
+  /// Permanently deletes an already-saved variant from the backend
+  /// (`DELETE /api/variant/{id}`) — distinct from [_removeVariant], which
+  /// only detaches a variant from *this* dish. Variants are a standalone,
+  /// reusable resource that other dishes may also reference, so this warns
+  /// explicitly before calling [VariantProvider.deleteVariant].
+  Future<void> _deleteVariant(int index) async {
+    final id = _variants[index].id;
+    if (id == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surface,
+        title: const Text('Delete Variant', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, decoration: TextDecoration.none)),
+        content: const Text(
+          'This permanently deletes the variant, not just from this dish. If any other dish also uses it, it will disappear there too. This cannot be undone.',
+          style: TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none))),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete', style: TextStyle(color: AppTheme.cancelled, fontWeight: FontWeight.w700, decoration: TextDecoration.none))),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final provider = context.read<VariantProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    final success = await provider.deleteVariant(id);
+    if (!mounted) return;
+
+    if (success) {
+      setState(() {
+        _variants[index].dispose();
+        _variants.removeAt(index);
+        if (_variants.isEmpty) _variants.add(_VariantFormData());
+      });
+    } else {
+      messenger.showSnackBar(SnackBar(content: Text(provider.deleteErrorMessage ?? 'Failed to delete variant')));
+    }
+  }
+
   void _reset() {
     setState(() {
       for (final v in _variants) {
@@ -2728,6 +2871,7 @@ class _EditVariantScreenState extends State<EditVariantScreen> {
               data: _variants[i],
               onChanged: () => setState(() {}),
               onRemove: _variants.length > 1 ? () => _removeVariant(i) : null,
+              onDelete: _variants[i].id != null ? () => _deleteVariant(i) : null,
             ),
             const SizedBox(height: 16),
           ],
@@ -2843,8 +2987,9 @@ class _VariantCard extends StatelessWidget {
   final _VariantFormData data;
   final VoidCallback onChanged;
   final VoidCallback? onRemove;
+  final VoidCallback? onDelete;
 
-  const _VariantCard({required this.data, required this.onChanged, this.onRemove});
+  const _VariantCard({required this.data, required this.onChanged, this.onRemove, this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -3007,9 +3152,26 @@ class _VariantCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Text(
-            'Listed Price: Rs ${data.listedPrice.toStringAsFixed(0)}',
-            style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600, fontSize: 13, decoration: TextDecoration.none),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Listed Price: Rs ${data.listedPrice.toStringAsFixed(0)}',
+                style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600, fontSize: 13, decoration: TextDecoration.none),
+              ),
+              if (onDelete != null)
+                GestureDetector(
+                  onTap: onDelete,
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.delete_forever_outlined, size: 15, color: AppTheme.cancelled),
+                      SizedBox(width: 4),
+                      Text('Delete Variant', style: TextStyle(color: AppTheme.cancelled, fontWeight: FontWeight.w600, fontSize: 12, decoration: TextDecoration.none)),
+                    ],
+                  ),
+                ),
+            ],
           ),
         ],
       ),
@@ -3054,7 +3216,11 @@ class _VariantTextField extends StatelessWidget {
 // ---------------- from add_dish_screen.dart ----------------
 
 class AddDishScreen extends StatefulWidget {
-  const AddDishScreen({super.key});
+  final Dish? existingDish;
+
+  const AddDishScreen({super.key, this.existingDish});
+
+  bool get isEditing => existingDish != null;
 
   @override
   State<AddDishScreen> createState() => _AddDishScreenState();
@@ -3077,7 +3243,31 @@ class _AddDishScreenState extends State<AddDishScreen> {
   List<DishVariant> _variants = [];
   List<String> _selectedAddOns = [];
   List<StockConsumptionEntry> _stockConsumption = [];
-  String? _selectedImageSource;
+  UploadedMedia? _uploadedPhoto;
+
+  // Only relevant when editing: resolves the dish's plain ids (category,
+  // dish type, sub-menu, unit, addons, variants) into the picker display
+  // objects the rest of this form already works with. The provider lists
+  // are lazy-loaded per-picker on this screen, so editing kicks off a fetch
+  // for each and resolution runs once, after they've all loaded.
+  bool _prefillApplied = false;
+
+  static String _trimNum(double v) => v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toString();
+
+  void _kickOffPrefillFetches() {
+    final categoryProvider = context.read<CategoryProvider>();
+    if (categoryProvider.status == LoadStatus.idle) categoryProvider.fetchCategories();
+    final dishTypeProvider = context.read<DishTypeProvider>();
+    if (dishTypeProvider.status == LoadStatus.idle) dishTypeProvider.fetchDishTypes();
+    final typeOfMenuProvider = context.read<TypeOfMenuProvider>();
+    if (typeOfMenuProvider.status == LoadStatus.idle) typeOfMenuProvider.fetchTypeOfMenus();
+    final unitProvider = context.read<UnitProvider>();
+    if (unitProvider.status == LoadStatus.idle) unitProvider.fetchUnits();
+    final addOnProvider = context.read<AddOnProvider>();
+    if (addOnProvider.status == LoadStatus.idle) addOnProvider.fetchAddOns();
+    final variantProvider = context.read<VariantProvider>();
+    if (variantProvider.status == LoadStatus.idle) variantProvider.fetchVariants();
+  }
 
   double get _listedPrice {
     final actual = double.tryParse(_actualPriceController.text) ?? 0;
@@ -3087,6 +3277,22 @@ class _AddDishScreenState extends State<AddDishScreen> {
   }
 
   double get _grossProfit => _listedPrice; // placeholder calc — adjust when cost price is added
+
+  @override
+  void initState() {
+    super.initState();
+    final dish = widget.existingDish;
+    if (dish != null) {
+      _dishNameController.text = dish.dishName;
+      _hsCodeController.text = dish.hsCode ?? '';
+      _descriptionController.text = dish.description ?? '';
+      if (dish.price != null) _actualPriceController.text = _trimNum(dish.price!);
+      if (dish.discount != null) _discountController.text = _trimNum(dish.discount!);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _kickOffPrefillFetches();
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -3134,13 +3340,8 @@ class _AddDishScreenState extends State<AddDishScreen> {
   }
 
   Future<void> _pickImageSource() async {
-    final result = await ImageSourceSheet.show(context);
-    if (result != null) {
-      setState(() => _selectedImageSource = result);
-      // TODO: Handle actual image picking based on result ('library' | 'camera' | 'gallery')
-      // and upload via POST /api/media once that flow exists — dishPhoto is
-      // sent as null until then.
-    }
+    final media = await pickAndUploadImage(context);
+    if (media != null) setState(() => _uploadedPhoto = media);
   }
 
   Future<void> _save() async {
@@ -3169,32 +3370,62 @@ class _AddDishScreenState extends State<AddDishScreen> {
     final addonIds = _selectedAddOns.map((name) => addOnsByName[name]).whereType<String>().toList();
 
     final provider = context.read<DishProvider>();
-    final dish = await provider.createDish(
-      dishName: dishName,
-      hsCode: _hsCodeController.text.trim().isEmpty ? null : _hsCodeController.text.trim(),
-      // No media-upload flow yet, so dishPhoto can't be resolved to a real id.
-      dishPhoto: null,
-      description: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
-      price: price,
-      discountType: discount == null ? null : 'amount',
-      discount: discount,
-      priceAfterDiscount: price == null ? null : _listedPrice,
-      addonIds: addonIds,
-      dishTypeId: _selectedDishType!.id,
-      menuCategoryId: _selectedCategory!.id,
-      // Optional — null unless a real (non-fallback) unit was picked, since
-      // GET /api/unit isn't live yet. See SelectMeasuringUnitSheet.
-      unitId: _selectedUnit?.id,
-      typeOfMenuId: _selectedSubMenu?.id,
-      variantIds: _variants.map((v) => v.id).whereType<String>().toList(),
-    );
+    final hsCode = _hsCodeController.text.trim().isEmpty ? null : _hsCodeController.text.trim();
+    final description = _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim();
+    final priceAfterDiscount = price == null ? null : _listedPrice;
+    final unitId = _selectedUnit?.id;
+    final typeOfMenuId = _selectedSubMenu?.id;
+    final variantIds = _variants.map((v) => v.id).whereType<String>().toList();
+
+    final dish = widget.isEditing
+        ? await provider.updateDish(
+            id: widget.existingDish!.id,
+            dishName: dishName,
+            hsCode: hsCode,
+            // A newly-uploaded photo wins; otherwise keep whatever the dish
+            // already had rather than clearing it.
+            dishPhoto: _uploadedPhoto?.id ?? widget.existingDish!.dishPhoto,
+            description: description,
+            price: price,
+            discountType: discount == null ? null : 'amount',
+            discount: discount,
+            priceAfterDiscount: priceAfterDiscount,
+            addonIds: addonIds,
+            dishTypeId: _selectedDishType!.id,
+            menuCategoryId: _selectedCategory!.id,
+            unitId: unitId,
+            typeOfMenuId: typeOfMenuId,
+            variantIds: variantIds,
+            // No availability toggle in this form yet — preserve whatever
+            // the dish already had rather than silently resetting it.
+            available: widget.existingDish!.available,
+          )
+        : await provider.createDish(
+            dishName: dishName,
+            hsCode: hsCode,
+            dishPhoto: _uploadedPhoto?.id,
+            description: description,
+            price: price,
+            discountType: discount == null ? null : 'amount',
+            discount: discount,
+            priceAfterDiscount: priceAfterDiscount,
+            addonIds: addonIds,
+            dishTypeId: _selectedDishType!.id,
+            menuCategoryId: _selectedCategory!.id,
+            // Optional — null unless a real (non-fallback) unit was picked, since
+            // GET /api/unit isn't live yet. See SelectMeasuringUnitSheet.
+            unitId: unitId,
+            typeOfMenuId: typeOfMenuId,
+            variantIds: variantIds,
+          );
     if (!mounted) return;
 
     if (dish != null) {
-      messenger.showSnackBar(const SnackBar(content: Text('Dish created successfully')));
+      messenger.showSnackBar(SnackBar(content: Text(widget.isEditing ? 'Dish updated successfully' : 'Dish created successfully')));
       Navigator.pop(context, dish);
     } else {
-      messenger.showSnackBar(SnackBar(content: Text(provider.createErrorMessage ?? 'Failed to create dish')));
+      final message = widget.isEditing ? provider.updateErrorMessage : provider.createErrorMessage;
+      messenger.showSnackBar(SnackBar(content: Text(message ?? 'Failed to save dish')));
     }
   }
 
@@ -3211,8 +3442,52 @@ class _AddDishScreenState extends State<AddDishScreen> {
     }
   }
 
+  /// Resolves the editing dish's plain ids into picker display objects once
+  /// every relevant provider list has loaded. Runs at most once (guarded by
+  /// [_prefillApplied]); the actual field mutation is deferred to after this
+  /// frame since it isn't safe to call `setState` mid-build.
+  void _tryApplyPrefill(BuildContext context) {
+    final dish = widget.existingDish;
+    if (dish == null || _prefillApplied) return;
+
+    final categoryProvider = context.watch<CategoryProvider>();
+    final dishTypeProvider = context.watch<DishTypeProvider>();
+    final typeOfMenuProvider = context.watch<TypeOfMenuProvider>();
+    final unitProvider = context.watch<UnitProvider>();
+    final addOnProvider = context.watch<AddOnProvider>();
+    final variantProvider = context.watch<VariantProvider>();
+
+    final allLoaded = categoryProvider.status == LoadStatus.loaded &&
+        dishTypeProvider.status == LoadStatus.loaded &&
+        typeOfMenuProvider.status == LoadStatus.loaded &&
+        unitProvider.status == LoadStatus.loaded &&
+        addOnProvider.status == LoadStatus.loaded &&
+        variantProvider.status == LoadStatus.loaded;
+    if (!allLoaded) return;
+
+    _prefillApplied = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() {
+        _selectedCategory = categoryProvider.categories.where((c) => c.id == dish.menuCategoryId).firstOrNull;
+        _selectedDishType = dishTypeProvider.dishTypes.where((t) => t.id == dish.dishTypeId).firstOrNull;
+        _selectedSubMenu = dish.typeOfMenuId == null
+            ? null
+            : typeOfMenuProvider.types.where((m) => m.id == dish.typeOfMenuId).firstOrNull;
+        _selectedUnit = dish.unitId == null ? null : unitProvider.units.where((u) => u.id == dish.unitId).firstOrNull;
+        _selectedAddOns = addOnProvider.addons.where((a) => dish.addonIds.contains(a.id)).map((a) => a.addonName).toList();
+        _variants = variantProvider.variants
+            .where((v) => dish.variantIds.contains(v.id))
+            .map((v) => DishVariant(id: v.id, name: v.variantName, actualPrice: v.actualPrice, discount: v.discount, cogs: v.cogs, unitId: v.unitId))
+            .toList();
+        _multiplePrice = _variants.isNotEmpty;
+      });
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    _tryApplyPrefill(context);
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
@@ -3232,9 +3507,9 @@ class _AddDishScreenState extends State<AddDishScreen> {
             ),
           ),
         ),
-        title: const Text(
-          'Add Dish',
-          style: TextStyle(
+        title: Text(
+          widget.isEditing ? 'Edit Dish' : 'Add Dish',
+          style: const TextStyle(
             color: AppTheme.textPrimary,
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -3428,9 +3703,12 @@ class _AddDishScreenState extends State<AddDishScreen> {
           const _FieldLabel(label: 'Dish Photo', required: false),
           const SizedBox(height: 8),
           _UploadBox(
-            label: _selectedImageSource == null
-                ? 'Tap here to select or upload photos'
-                : 'Selected via ${_selectedImageSource!}',
+            label: _uploadedPhoto != null
+                ? 'Photo uploaded'
+                : (widget.existingDish?.dishPhotoUrl != null ? 'Tap to change photo' : 'Tap here to select or upload photos'),
+            previewUrl: _uploadedPhoto?.url != null
+                ? '${ApiClient.mediaBaseUrl}${_uploadedPhoto!.url}'
+                : (widget.existingDish?.dishPhotoUrl != null ? '${ApiClient.mediaBaseUrl}${widget.existingDish!.dishPhotoUrl}' : null),
             onTap: _pickImageSource,
           ),
           const SizedBox(height: 24),
@@ -3658,22 +3936,23 @@ class _AddDishScreenState extends State<AddDishScreen> {
               flex: 2,
               child: Consumer<DishProvider>(
                 builder: (context, provider, _) {
+                  final isSaving = widget.isEditing ? provider.isUpdating : provider.isCreating;
                   return ElevatedButton(
-                    onPressed: provider.isCreating ? null : _save,
+                    onPressed: isSaving ? null : _save,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primary,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
-                    child: provider.isCreating
+                    child: isSaving
                         ? const SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
                           )
-                        : const Text(
-                            'Save',
-                            style: TextStyle(
+                        : Text(
+                            widget.isEditing ? 'Update' : 'Save',
+                            style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w600,
                               decoration: TextDecoration.none,
@@ -3866,8 +4145,9 @@ class _SelectField extends StatelessWidget {
 class _UploadBox extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
+  final String? previewUrl;
 
-  const _UploadBox({required this.label, required this.onTap});
+  const _UploadBox({required this.label, required this.onTap, this.previewUrl});
 
   @override
   Widget build(BuildContext context) {
@@ -3884,8 +4164,22 @@ class _UploadBox extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.upload_outlined, color: AppTheme.textSecondary),
-            const SizedBox(width: 10),
+            if (previewUrl != null) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  previewUrl!,
+                  width: 36,
+                  height: 36,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.upload_outlined, color: AppTheme.textSecondary),
+                ),
+              ),
+              const SizedBox(width: 10),
+            ] else ...[
+              const Icon(Icons.upload_outlined, color: AppTheme.textSecondary),
+              const SizedBox(width: 10),
+            ],
             Expanded(
               child: Text(
                 label,
@@ -3903,7 +4197,11 @@ class _UploadBox extends StatelessWidget {
 // ---------------- Add Category screen ----------------
 
 class AddCategoryScreen extends StatefulWidget {
-  const AddCategoryScreen({super.key});
+  final MenuCategory? existingCategory;
+
+  const AddCategoryScreen({super.key, this.existingCategory});
+
+  bool get isEditing => existingCategory != null;
 
   @override
   State<AddCategoryScreen> createState() => _AddCategoryScreenState();
@@ -3911,8 +4209,15 @@ class AddCategoryScreen extends StatefulWidget {
 
 class _AddCategoryScreenState extends State<AddCategoryScreen> {
   final _nameController = TextEditingController();
-  String? _selectedImageSource;
+  UploadedMedia? _uploadedPhoto;
   bool _nameError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final category = widget.existingCategory;
+    if (category != null) _nameController.text = category.categoryName;
+  }
 
   @override
   void dispose() {
@@ -3921,8 +4226,8 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
   }
 
   Future<void> _pickImageSource() async {
-    final result = await ImageSourceSheet.show(context);
-    if (result != null) setState(() => _selectedImageSource = result);
+    final media = await pickAndUploadImage(context);
+    if (media != null) setState(() => _uploadedPhoto = media);
   }
 
   Future<void> _save() async {
@@ -3932,14 +4237,23 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
 
     final provider = context.read<CategoryProvider>();
     final messenger = ScaffoldMessenger.of(context);
-    final category = await provider.createCategory(categoryName: name);
+    final category = widget.isEditing
+        ? await provider.updateCategory(
+            id: widget.existingCategory!.id,
+            categoryName: name,
+            // A newly-uploaded photo wins; otherwise keep whatever the
+            // category already had rather than clearing it.
+            image: _uploadedPhoto?.id ?? widget.existingCategory!.image,
+          )
+        : await provider.createCategory(categoryName: name, image: _uploadedPhoto?.id);
     if (!mounted) return;
 
     if (category != null) {
-      messenger.showSnackBar(const SnackBar(content: Text('Category created successfully')));
+      messenger.showSnackBar(SnackBar(content: Text(widget.isEditing ? 'Category updated successfully' : 'Category created successfully')));
       Navigator.pop(context, category);
     } else {
-      messenger.showSnackBar(SnackBar(content: Text(provider.createErrorMessage ?? 'Failed to create category')));
+      final message = widget.isEditing ? provider.updateErrorMessage : provider.createErrorMessage;
+      messenger.showSnackBar(SnackBar(content: Text(message ?? 'Failed to save category')));
     }
   }
 
@@ -3964,9 +4278,9 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
             ),
           ),
         ),
-        title: const Text(
-          'Add Category',
-          style: TextStyle(
+        title: Text(
+          widget.isEditing ? 'Edit Category' : 'Add Category',
+          style: const TextStyle(
             color: AppTheme.textPrimary,
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -3991,9 +4305,12 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
           const _FieldLabel(label: 'Category Photo', required: false),
           const SizedBox(height: 8),
           _UploadBox(
-            label: _selectedImageSource == null
-                ? 'Tap here to select or upload photos'
-                : 'Selected via ${_selectedImageSource!}',
+            label: _uploadedPhoto != null
+                ? 'Photo uploaded'
+                : (widget.existingCategory?.imageUrl != null ? 'Tap to change photo' : 'Tap here to select or upload photos'),
+            previewUrl: _uploadedPhoto?.url != null
+                ? '${ApiClient.mediaBaseUrl}${_uploadedPhoto!.url}'
+                : (widget.existingCategory?.imageUrl != null ? '${ApiClient.mediaBaseUrl}${widget.existingCategory!.imageUrl}' : null),
             onTap: _pickImageSource,
           ),
         ],
@@ -4020,24 +4337,27 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
             Expanded(
               flex: 2,
               child: Consumer<CategoryProvider>(
-                builder: (context, provider, _) => ElevatedButton(
-                  onPressed: provider.isCreating ? null : _save,
+                builder: (context, provider, _) {
+                  final isSaving = widget.isEditing ? provider.isUpdating : provider.isCreating;
+                  return ElevatedButton(
+                  onPressed: isSaving ? null : _save,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primary,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  child: provider.isCreating
+                  child: isSaving
                       ? const SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
                         )
-                      : const Text(
-                          'Save Category',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, decoration: TextDecoration.none),
+                      : Text(
+                          widget.isEditing ? 'Update Category' : 'Save Category',
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, decoration: TextDecoration.none),
                         ),
-                ),
+                  );
+                },
               ),
             ),
           ],
@@ -4054,7 +4374,11 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
 /// "Sub Menu Photo" from the original design has no backend field and no
 /// upload flow anywhere in this app yet, so it's dropped.
 class AddSubMenuScreen extends StatefulWidget {
-  const AddSubMenuScreen({super.key});
+  final TypeOfMenu? existingTypeOfMenu;
+
+  const AddSubMenuScreen({super.key, this.existingTypeOfMenu});
+
+  bool get isEditing => existingTypeOfMenu != null;
 
   @override
   State<AddSubMenuScreen> createState() => _AddSubMenuScreenState();
@@ -4065,6 +4389,16 @@ class _AddSubMenuScreenState extends State<AddSubMenuScreen> {
   final _descriptionController = TextEditingController();
   bool _nameError = false;
   bool _descriptionError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final type = widget.existingTypeOfMenu;
+    if (type != null) {
+      _nameController.text = type.name;
+      _descriptionController.text = type.description ?? '';
+    }
+  }
 
   @override
   void dispose() {
@@ -4083,20 +4417,22 @@ class _AddSubMenuScreenState extends State<AddSubMenuScreen> {
     if (_nameError || _descriptionError) return;
 
     final provider = context.read<TypeOfMenuProvider>();
-    final result = await provider.createTypeOfMenu(name: name, description: description, status: true);
+    final result = widget.isEditing
+        ? await provider.updateTypeOfMenu(id: widget.existingTypeOfMenu!.id, name: name, description: description, status: widget.existingTypeOfMenu!.status)
+        : await provider.createTypeOfMenu(name: name, description: description, status: true);
     if (!mounted) return;
     if (result != null) {
       Navigator.pop(context, result);
     } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(provider.createErrorMessage ?? 'Something went wrong. Please try again.')));
+      final message = widget.isEditing ? provider.updateErrorMessage : provider.createErrorMessage;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message ?? 'Something went wrong. Please try again.')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isCreating = context.watch<TypeOfMenuProvider>().isCreating;
+    final provider = context.watch<TypeOfMenuProvider>();
+    final isSaving = widget.isEditing ? provider.isUpdating : provider.isCreating;
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
@@ -4116,9 +4452,9 @@ class _AddSubMenuScreenState extends State<AddSubMenuScreen> {
             ),
           ),
         ),
-        title: const Text(
-          'Create Sub Menu',
-          style: TextStyle(
+        title: Text(
+          widget.isEditing ? 'Edit Sub Menu' : 'Create Sub Menu',
+          style: const TextStyle(
             color: AppTheme.textPrimary,
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -4162,7 +4498,7 @@ class _AddSubMenuScreenState extends State<AddSubMenuScreen> {
           children: [
             Expanded(
               child: TextButton(
-                onPressed: isCreating ? null : () => Navigator.pop(context),
+                onPressed: isSaving ? null : () => Navigator.pop(context),
                 style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
                 child: const Text(
                   'Back',
@@ -4174,17 +4510,17 @@ class _AddSubMenuScreenState extends State<AddSubMenuScreen> {
             Expanded(
               flex: 2,
               child: ElevatedButton(
-                onPressed: isCreating ? null : _save,
+                onPressed: isSaving ? null : _save,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primary,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
-                child: isCreating
+                child: isSaving
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Text(
-                        'Save Sub Menu',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, decoration: TextDecoration.none),
+                    : Text(
+                        widget.isEditing ? 'Update Sub Menu' : 'Save Sub Menu',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, decoration: TextDecoration.none),
                       ),
               ),
             ),

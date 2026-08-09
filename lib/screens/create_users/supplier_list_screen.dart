@@ -270,6 +270,7 @@ class SupplierDetailScreen extends StatefulWidget {
 }
 
 class _SupplierDetailScreenState extends State<SupplierDetailScreen> {
+  late Supplier _supplier = widget.supplier;
   bool _isDeleting = false;
 
   @override
@@ -281,6 +282,11 @@ class _SupplierDetailScreenState extends State<SupplierDetailScreen> {
     }
   }
 
+  Future<void> _edit() async {
+    final updated = await Navigator.push<Supplier>(context, MaterialPageRoute(builder: (context) => AddSupplierScreen(existingSupplier: _supplier)));
+    if (updated != null && mounted) setState(() => _supplier = updated);
+  }
+
   String _formatDate(DateTime? d) {
     if (d == null) return '—';
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -288,7 +294,14 @@ class _SupplierDetailScreenState extends State<SupplierDetailScreen> {
   }
 
   Future<void> _addTransaction() async {
-    await Navigator.push(context, MaterialPageRoute(builder: (context) => AddSupplierTransactionScreen(supplierId: widget.supplier.id)));
+    await Navigator.push(context, MaterialPageRoute(builder: (context) => AddSupplierTransactionScreen(supplierId: _supplier.id)));
+  }
+
+  Future<void> _editTransaction(SupplierTransaction transaction) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => AddSupplierTransactionScreen(supplierId: _supplier.id, existingTransaction: transaction)),
+    );
   }
 
   Future<void> _deleteTransaction(SupplierTransaction transaction) async {
@@ -321,7 +334,7 @@ class _SupplierDetailScreenState extends State<SupplierDetailScreen> {
         backgroundColor: AppTheme.surface,
         title: const Text('Remove Supplier', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, decoration: TextDecoration.none)),
         content: Text(
-          "Remove ${widget.supplier.supplierName} from your supplier list?",
+          "Remove ${_supplier.supplierName} from your supplier list?",
           style: const TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none),
         ),
         actions: [
@@ -341,7 +354,7 @@ class _SupplierDetailScreenState extends State<SupplierDetailScreen> {
     setState(() => _isDeleting = true);
     final provider = context.read<SupplierProvider>();
     final messenger = ScaffoldMessenger.of(context);
-    final success = await provider.deleteSupplier(widget.supplier.id);
+    final success = await provider.deleteSupplier(_supplier.id);
     if (!mounted) return;
 
     if (success) {
@@ -354,7 +367,7 @@ class _SupplierDetailScreenState extends State<SupplierDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final supplier = widget.supplier;
+    final supplier = _supplier;
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
@@ -376,6 +389,18 @@ class _SupplierDetailScreenState extends State<SupplierDetailScreen> {
           style: const TextStyle(color: AppTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none),
         ),
         actions: [
+          if (!_isDeleting)
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: GestureDetector(
+                onTap: _edit,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(border: Border.all(color: AppTheme.divider), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.edit_outlined, color: AppTheme.accent, size: 20),
+                ),
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: _isDeleting
@@ -488,12 +513,23 @@ class _SupplierDetailScreenState extends State<SupplierDetailScreen> {
                         'Rs ${transaction.totalPayment.toStringAsFixed(0)}',
                         style: TextStyle(color: isReceivable ? AppTheme.completed : AppTheme.textPrimary, fontWeight: FontWeight.w600, decoration: TextDecoration.none),
                       ),
-                      GestureDetector(
-                        onTap: () => _deleteTransaction(transaction),
-                        child: const Padding(
-                          padding: EdgeInsets.only(top: 4),
-                          child: Icon(Icons.delete_outline, color: AppTheme.cancelled, size: 18),
-                        ),
+                      Row(
+                        children: [
+                          GestureDetector(
+                            onTap: () => _editTransaction(transaction),
+                            child: const Padding(
+                              padding: EdgeInsets.only(top: 4, right: 10),
+                              child: Icon(Icons.edit_outlined, color: AppTheme.accent, size: 18),
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => _deleteTransaction(transaction),
+                            child: const Padding(
+                              padding: EdgeInsets.only(top: 4),
+                              child: Icon(Icons.delete_outline, color: AppTheme.cancelled, size: 18),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

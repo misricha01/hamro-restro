@@ -196,7 +196,6 @@ class ManageScreen extends StatelessWidget {
             const SizedBox(height: 16),
 
             _SectionCard(
-              title: 'Hamro Restro - Restaurant Software',
               showChevrons: false,
               items: [
                 _ManageRowData(icon: Icons.help_outline, label: 'FAQs', onTap: () => _todo(context)),

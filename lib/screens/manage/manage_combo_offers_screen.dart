@@ -4,6 +4,7 @@ import '../../core/theme/app_theme.dart';
 import '../../data/models/combo_offer/combo_offer_model.dart';
 import '../../providers/combo_offer_provider.dart';
 import '../../providers/order_provider.dart' show LoadStatus;
+import '../../widgets/common/edit_delete_actions_sheet.dart';
 import '../../widgets/common/manage_list_controls.dart';
 import '../create_dish/add_combo_screen.dart' show AddComboScreen;
 
@@ -178,6 +179,42 @@ class _ComboCard extends StatelessWidget {
   final ComboOffer combo;
   const _ComboCard({required this.combo});
 
+  Future<void> _openActions(BuildContext context) async {
+    final action = await EditDeleteActionsSheet.show(context, title: combo.name);
+    if (!context.mounted) return;
+    if (action == 'edit') {
+      await Navigator.push(context, MaterialPageRoute(builder: (context) => AddComboScreen(existingCombo: combo)));
+    } else if (action == 'delete') {
+      await _confirmDelete(context);
+    }
+  }
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surface,
+        title: const Text('Delete Combo Offer', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, decoration: TextDecoration.none)),
+        content: Text(
+          'Remove "${combo.name}"? This cannot be undone.',
+          style: const TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none))),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete', style: TextStyle(color: AppTheme.cancelled, fontWeight: FontWeight.w700, decoration: TextDecoration.none))),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    final provider = context.read<ComboOfferProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    final success = await provider.deleteComboOffer(combo.id);
+    if (!success && context.mounted) {
+      messenger.showSnackBar(SnackBar(content: Text(provider.deleteErrorMessage ?? 'Failed to delete combo offer')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -214,6 +251,14 @@ class _ComboCard extends StatelessWidget {
           Text(
             'Rs ${combo.offerPrice.toStringAsFixed(0)}',
             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.accent, decoration: TextDecoration.none),
+          ),
+          InkWell(
+            onTap: () => _openActions(context),
+            borderRadius: BorderRadius.circular(8),
+            child: const Padding(
+              padding: EdgeInsets.only(left: 8),
+              child: Icon(Icons.more_vert, color: AppTheme.textSecondary, size: 20),
+            ),
           ),
         ],
       ),

@@ -206,7 +206,6 @@ class _SelectMenuSetSheetState extends State<SelectMenuSetSheet> {
       name: 'Default Menuset',
       initials: 'DM',
       services: const ['Dine In Service', 'Delivery Services', 'Pickup Services', 'Reservation Services', 'Takeaway Services'],
-      subMenuCount: 3,
     ),
   ];
 
@@ -287,10 +286,6 @@ class _SelectMenuSetSheetState extends State<SelectMenuSetSheet> {
                                     style: const TextStyle(color: AppTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.w600, decoration: TextDecoration.none),
                                   ),
                                   const Spacer(),
-                                  Text(
-                                    'Sub Menu: ${item.subMenuCount}',
-                                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13, decoration: TextDecoration.none),
-                                  ),
                                   if (selected) ...[
                                     const SizedBox(width: 8),
                                     const Icon(Icons.check, color: AppTheme.cancelled, size: 18),

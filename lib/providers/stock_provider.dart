@@ -72,6 +72,50 @@ class StockProvider extends ChangeNotifier {
     }
   }
 
+  bool isUpdating = false;
+  String? updateErrorMessage;
+
+  Future<Stock?> updateStock({
+    required String id,
+    String? itemName,
+    double? defaultPrice,
+    double? quantity,
+    double? rate,
+    String? description,
+    String? unitId,
+    String? stockGroupId,
+    String? supplierId,
+  }) async {
+    isUpdating = true;
+    updateErrorMessage = null;
+    notifyListeners();
+
+    try {
+      final stock = await _repository.updateStock(
+        id: id,
+        itemName: itemName,
+        defaultPrice: defaultPrice,
+        quantity: quantity,
+        rate: rate,
+        description: description,
+        unitId: unitId,
+        stockGroupId: stockGroupId,
+        supplierId: supplierId,
+      );
+      stocks = stocks.map((s) => s.id == id ? stock : s).toList();
+      return stock;
+    } on ApiException catch (e) {
+      updateErrorMessage = e.message;
+      return null;
+    } catch (_) {
+      updateErrorMessage = 'Something went wrong. Please try again.';
+      return null;
+    } finally {
+      isUpdating = false;
+      notifyListeners();
+    }
+  }
+
   bool isDeleting = false;
   String? deleteErrorMessage;
 

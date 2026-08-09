@@ -3,9 +3,16 @@ import '../../core/theme/app_theme.dart';
 
 /// Quick-create form for a new Menu Set, reached from the Manage Menu Set
 /// list's "Add New Menu Set" button. Mirrors the simple name-only pattern
-/// already used by AddCategoryScreen / AddSubMenuScreen.
+/// already used by AddCategoryScreen / AddSubMenuScreen. Also doubles as the
+/// edit form when [existingName] is passed (Menu Set has no backend entity
+/// of its own — see ManageMenuSetScreen — so editing just renames the local
+/// list item via the returned name, same as create).
 class AddMenuSetScreen extends StatefulWidget {
-  const AddMenuSetScreen({super.key});
+  final String? existingName;
+
+  const AddMenuSetScreen({super.key, this.existingName});
+
+  bool get isEditing => existingName != null;
 
   @override
   State<AddMenuSetScreen> createState() => _AddMenuSetScreenState();
@@ -14,6 +21,12 @@ class AddMenuSetScreen extends StatefulWidget {
 class _AddMenuSetScreenState extends State<AddMenuSetScreen> {
   final _nameController = TextEditingController();
   bool _nameError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.existingName != null) _nameController.text = widget.existingName!;
+  }
 
   @override
   void dispose() {
@@ -46,9 +59,9 @@ class _AddMenuSetScreenState extends State<AddMenuSetScreen> {
             ),
           ),
         ),
-        title: const Text(
-          'Add Menu Set',
-          style: TextStyle(color: AppTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none),
+        title: Text(
+          widget.isEditing ? 'Edit Menu Set' : 'Add Menu Set',
+          style: const TextStyle(color: AppTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none),
         ),
       ),
       body: ListView(
@@ -109,7 +122,7 @@ class _AddMenuSetScreenState extends State<AddMenuSetScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
-                child: const Text('Save Menu Set', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
+                child: Text(widget.isEditing ? 'Update Menu Set' : 'Save Menu Set', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
               ),
             ),
           ],

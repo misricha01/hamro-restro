@@ -49,6 +49,8 @@ class ApiConstants {
   static const String expenses = '/api/expenses';
   static const String expenseCategories = '/api/expense-category';
   static const String supplierTransactions = '/api/supplier-transaction';
+  static const String media = '/api/media';
+  static const String checkout = '/api/checkout';
 
   static const Duration connectTimeout = Duration(seconds: 15);
   static const Duration receiveTimeout = Duration(seconds: 15);

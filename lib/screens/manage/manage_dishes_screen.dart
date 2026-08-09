@@ -150,6 +150,36 @@ class _DishManageCard extends StatelessWidget {
     return price == null ? 'Rs —' : 'Rs ${price.toStringAsFixed(0)}';
   }
 
+  Future<void> _edit(BuildContext context) async {
+    await Navigator.push(context, MaterialPageRoute(builder: (context) => AddDishScreen(existingDish: dish)));
+  }
+
+  Future<void> _delete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surface,
+        title: const Text('Delete Dish', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, decoration: TextDecoration.none)),
+        content: Text(
+          'Remove "${dish.dishName}" from your menu? This cannot be undone.',
+          style: const TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none))),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete', style: TextStyle(color: AppTheme.cancelled, fontWeight: FontWeight.w700, decoration: TextDecoration.none))),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    final provider = context.read<DishProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    final success = await provider.deleteDish(dish.id);
+    if (!success && context.mounted) {
+      messenger.showSnackBar(SnackBar(content: Text(provider.deleteErrorMessage ?? 'Failed to delete dish')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -197,27 +227,37 @@ class _DishManageCard extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
-            child: SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: () {
-                  // TODO: Open dish edit flow once available.
-                },
-                style: OutlinedButton.styleFrom(
-                  backgroundColor: AppTheme.surface,
-                  side: BorderSide.none,
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => _edit(context),
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: AppTheme.surface,
+                      side: BorderSide.none,
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.edit_outlined, size: 14, color: AppTheme.textPrimary),
+                        SizedBox(width: 4),
+                        Text('Edit', style: TextStyle(fontSize: 12, color: AppTheme.textPrimary, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
+                      ],
+                    ),
+                  ),
                 ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.edit_outlined, size: 14, color: AppTheme.textPrimary),
-                    SizedBox(width: 4),
-                    Text('Edit', style: TextStyle(fontSize: 12, color: AppTheme.textPrimary, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
-                  ],
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () => _delete(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(color: AppTheme.surface, borderRadius: BorderRadius.circular(8)),
+                    child: const Icon(Icons.delete_outline, size: 16, color: AppTheme.cancelled),
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ],

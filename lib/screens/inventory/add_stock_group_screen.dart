@@ -6,9 +6,16 @@ import '../../providers/stock_group_provider.dart';
 
 /// "Add Stock Group" form, backed by [StockGroupProvider.createStockGroup]
 /// (`POST /api/stock-group`) and pops with the created [StockGroup] on
-/// success — mirrors [AddCategoryScreen]'s save/loading/error pattern.
+/// success — mirrors [AddCategoryScreen]'s save/loading/error pattern. Also
+/// reused for editing (pass [existingGroup]), which calls
+/// [StockGroupProvider.updateStockGroup] (`PATCH /api/stock-group/{id}`)
+/// instead.
 class AddStockGroupScreen extends StatefulWidget {
-  const AddStockGroupScreen({super.key});
+  final StockGroup? existingGroup;
+
+  const AddStockGroupScreen({super.key, this.existingGroup});
+
+  bool get isEditing => existingGroup != null;
 
   @override
   State<AddStockGroupScreen> createState() => _AddStockGroupScreenState();
@@ -18,6 +25,16 @@ class _AddStockGroupScreenState extends State<AddStockGroupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _groupNameController = TextEditingController();
   final _descriptionController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    final group = widget.existingGroup;
+    if (group != null) {
+      _groupNameController.text = group.groupName;
+      _descriptionController.text = group.groupDescription ?? '';
+    }
+  }
 
   @override
   void dispose() {
@@ -30,24 +47,26 @@ class _AddStockGroupScreenState extends State<AddStockGroupScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final provider = context.read<StockGroupProvider>();
-    final group = await provider.createStockGroup(
-      groupName: _groupNameController.text.trim(),
-      groupDescription: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
-    );
+    final groupName = _groupNameController.text.trim();
+    final groupDescription = _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim();
+
+    final group = widget.isEditing
+        ? await provider.updateStockGroup(id: widget.existingGroup!.id, groupName: groupName, groupDescription: groupDescription)
+        : await provider.createStockGroup(groupName: groupName, groupDescription: groupDescription);
 
     if (!mounted) return;
     if (group != null) {
       Navigator.pop(context, group);
     } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(provider.createErrorMessage ?? 'Something went wrong. Please try again.')));
+      final message = widget.isEditing ? provider.updateErrorMessage : provider.createErrorMessage;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message ?? 'Something went wrong. Please try again.')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isCreating = context.watch<StockGroupProvider>().isCreating;
+    final provider = context.watch<StockGroupProvider>();
+    final isCreating = widget.isEditing ? provider.isUpdating : provider.isCreating;
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -68,9 +87,9 @@ class _AddStockGroupScreenState extends State<AddStockGroupScreen> {
             ),
           ),
         ),
-        title: const Text(
-          'Add Stock Group',
-          style: TextStyle(
+        title: Text(
+          widget.isEditing ? 'Edit Stock Group' : 'Add Stock Group',
+          style: const TextStyle(
             color: AppTheme.textPrimary,
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -214,9 +233,9 @@ class _AddStockGroupScreenState extends State<AddStockGroupScreen> {
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
-                      : const Text(
-                          'Save Stock Group',
-                          style: TextStyle(
+                      : Text(
+                          widget.isEditing ? 'Update Stock Group' : 'Save Stock Group',
+                          style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
                             decoration: TextDecoration.none,

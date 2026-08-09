@@ -8,6 +8,10 @@ abstract class AddOnRepository {
   Future<List<AddOn>> getAddOns();
 
   Future<AddOn> createAddOn({required String addonName, required double price});
+
+  Future<AddOn> updateAddOn({required String id, required String addonName, required double price});
+
+  Future<void> deleteAddOn(String id);
 }
 
 class AddOnRepositoryImpl implements AddOnRepository {
@@ -44,6 +48,31 @@ class AddOnRepositoryImpl implements AddOnRepository {
         ..sort((a, b) => (int.tryParse(b.id) ?? 0).compareTo(int.tryParse(a.id) ?? 0));
       if (matches.isNotEmpty) return matches.first;
       throw const ApiException('Add-On was created, but the list could not be refreshed.');
+    } on DioException catch (e) {
+      throw mapDioError(e);
+    }
+  }
+
+  @override
+  Future<AddOn> updateAddOn({required String id, required String addonName, required double price}) async {
+    try {
+      final response = await _dio.patch('${ApiConstants.addons}/$id', data: {'addonName': addonName, 'price': price});
+      final raw = response.data['data'];
+      if (raw is Map<String, dynamic> && raw['addonName'] != null) return AddOn.fromJson(raw);
+
+      final addons = await getAddOns();
+      final match = addons.where((a) => a.id == id).toList();
+      if (match.isNotEmpty) return match.first;
+      throw const ApiException('Add-On was updated, but the list could not be refreshed.');
+    } on DioException catch (e) {
+      throw mapDioError(e);
+    }
+  }
+
+  @override
+  Future<void> deleteAddOn(String id) async {
+    try {
+      await _dio.delete('${ApiConstants.addons}/$id');
     } on DioException catch (e) {
       throw mapDioError(e);
     }

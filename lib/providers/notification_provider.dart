@@ -68,4 +68,44 @@ class NotificationProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  final Set<String> _markingAsRead = {};
+  String? markAsReadErrorMessage;
+
+  bool isMarkingAsRead(String id) => _markingAsRead.contains(id);
+
+  /// Marks [id] as read (`PATCH /api/notification/read`) then silently
+  /// re-syncs [notifications] in the background — the backend doesn't echo
+  /// an updated read-state field on [AppNotification] we could flip
+  /// locally, so a refetch is the only way to reflect the real server
+  /// state. Uses [_repository] directly rather than [fetchNotifications] so
+  /// [status] (and the loading spinner it drives) isn't disturbed for what
+  /// should feel like a silent background update. Returns whether the mark
+  /// itself succeeded.
+  Future<bool> markNotificationAsRead(String id) async {
+    _markingAsRead.add(id);
+    markAsReadErrorMessage = null;
+    notifyListeners();
+
+    try {
+      await _repository.markAsRead([id]);
+      try {
+        notifications = await _repository.getNotifications();
+        notifyListeners();
+      } catch (_) {
+        // Best-effort resync — the mark itself already succeeded above, so
+        // don't surface this as a failure to the caller.
+      }
+      return true;
+    } on ApiException catch (e) {
+      markAsReadErrorMessage = e.message;
+      return false;
+    } catch (_) {
+      markAsReadErrorMessage = 'Something went wrong. Please try again.';
+      return false;
+    } finally {
+      _markingAsRead.remove(id);
+      notifyListeners();
+    }
+  }
 }

@@ -55,4 +55,56 @@ class AddOnProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  bool isUpdating = false;
+  String? updateErrorMessage;
+
+  /// Updates an add-on and replaces it in [addons] on success. Returns the
+  /// updated [AddOn], or `null` if the call failed (see [updateErrorMessage]).
+  Future<AddOn?> updateAddOn({required String id, required String addonName, required double price}) async {
+    isUpdating = true;
+    updateErrorMessage = null;
+    notifyListeners();
+
+    try {
+      final addon = await _repository.updateAddOn(id: id, addonName: addonName, price: price);
+      addons = addons.map((a) => a.id == id ? addon : a).toList();
+      return addon;
+    } on ApiException catch (e) {
+      updateErrorMessage = e.message;
+      return null;
+    } catch (_) {
+      updateErrorMessage = 'Something went wrong. Please try again.';
+      return null;
+    } finally {
+      isUpdating = false;
+      notifyListeners();
+    }
+  }
+
+  bool isDeleting = false;
+  String? deleteErrorMessage;
+
+  /// Deletes an add-on and removes it from [addons] on success. Returns
+  /// whether the call succeeded (see [deleteErrorMessage] on failure).
+  Future<bool> deleteAddOn(String id) async {
+    isDeleting = true;
+    deleteErrorMessage = null;
+    notifyListeners();
+
+    try {
+      await _repository.deleteAddOn(id);
+      addons = addons.where((a) => a.id != id).toList();
+      return true;
+    } on ApiException catch (e) {
+      deleteErrorMessage = e.message;
+      return false;
+    } catch (_) {
+      deleteErrorMessage = 'Something went wrong. Please try again.';
+      return false;
+    } finally {
+      isDeleting = false;
+      notifyListeners();
+    }
+  }
 }

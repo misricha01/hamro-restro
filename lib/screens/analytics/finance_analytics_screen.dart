@@ -154,12 +154,46 @@ class _FinanceAnalyticsScreenState extends State<FinanceAnalyticsScreen> {
                         ),
                       ],
                     ),
+                    const SizedBox(width: 4),
+                    GestureDetector(
+                      onTap: () => _confirmDeleteExpense(context, expense),
+                      child: const Padding(
+                        padding: EdgeInsets.only(left: 8),
+                        child: Icon(Icons.delete_outline, color: AppTheme.cancelled, size: 18),
+                      ),
+                    ),
                   ],
                 ),
               );
             },
           ),
         );
+    }
+  }
+
+  Future<void> _confirmDeleteExpense(BuildContext context, Expense expense) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surface,
+        title: const Text('Delete Expense', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, decoration: TextDecoration.none)),
+        content: Text(
+          'Remove "${expense.title}"? This cannot be undone.',
+          style: const TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none))),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete', style: TextStyle(color: AppTheme.cancelled, fontWeight: FontWeight.w700, decoration: TextDecoration.none))),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    final provider = context.read<ExpenseProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    final success = await provider.deleteExpense(expense.id);
+    if (!success && context.mounted) {
+      messenger.showSnackBar(SnackBar(content: Text(provider.deleteErrorMessage ?? 'Failed to delete expense')));
     }
   }
 }

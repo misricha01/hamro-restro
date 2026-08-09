@@ -5,6 +5,7 @@ class ComboOffer {
   final String? description;
   final String? hsCode;
   final String? comboPhoto;
+  final String? comboPhotoUrl;
   final List<String> dishIds;
   final double offerPrice;
   final DateTime startsAt;
@@ -16,6 +17,7 @@ class ComboOffer {
     this.description,
     this.hsCode,
     this.comboPhoto,
+    this.comboPhotoUrl,
     this.dishIds = const [],
     required this.offerPrice,
     required this.startsAt,
@@ -24,12 +26,20 @@ class ComboOffer {
 
   factory ComboOffer.fromJson(Map<String, dynamic> json) {
     final dishIds = json['dishIds'] as List<dynamic>? ?? const [];
+    // Same "flat media id on create, nested media object when expanded"
+    // shape seen on Dish's `dishPhoto` — handle both. See DishModel.
+    final rawPhoto = json['comboPhoto'];
     return ComboOffer(
       id: json['id'].toString(),
       name: json['name'] as String? ?? '',
       description: json['description'] as String?,
       hsCode: json['hsCode'] as String?,
-      comboPhoto: json['comboPhoto']?.toString(),
+      comboPhoto: switch (rawPhoto) {
+        String s => s,
+        Map<String, dynamic> m => m['id']?.toString(),
+        _ => null,
+      },
+      comboPhotoUrl: rawPhoto is Map<String, dynamic> ? rawPhoto['url'] as String? : null,
       dishIds: dishIds.map((e) => e.toString()).toList(),
       offerPrice: (json['offerPrice'] as num?)?.toDouble() ?? 0,
       startsAt: DateTime.tryParse(json['startsAt'] as String? ?? '') ?? DateTime.now(),

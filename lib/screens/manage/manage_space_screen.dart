@@ -11,7 +11,7 @@ import '../../widgets/common/setting_rows_card.dart';
 import 'create_space_screen.dart';
 
 /// Space list for the Manage screen, reached f
-/// rom the "Table & Space"
+/// from the "Table & Space"
 /// section's "Space" row. Shows the same empty state as the reference
 /// design until at least one space has been created.
 class ManageSpaceScreen extends StatefulWidget {
@@ -332,3 +332,4 @@ class _InfoRow extends StatelessWidget {
     );
   }
 }
+

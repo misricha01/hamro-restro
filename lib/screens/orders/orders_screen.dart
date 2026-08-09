@@ -12,6 +12,7 @@ import '../../widgets/common/order_empty_state.dart';
 import '../manage/add_table_screen.dart';
 import '../notification/notification_screen.dart';
 import '../quick_billing/quick_billing_screen.dart';
+import 'checkout_screen.dart';
 import 'saved_order_screen.dart';
 
 class OrdersScreen extends StatefulWidget {
@@ -201,6 +202,23 @@ class _OrderCard extends StatelessWidget {
                 style: TextStyle(color: pending ? AppTheme.pending : AppTheme.completed, fontSize: 12, fontWeight: FontWeight.w600, decoration: TextDecoration.none),
               ),
             ),
+            if (order.table?.id != null) ...[
+              const SizedBox(width: 8),
+              InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => CheckoutScreen(tableId: order.table!.id, tableName: order.table!.tableName)),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(border: Border.all(color: AppTheme.accent), borderRadius: BorderRadius.circular(8)),
+                  child: const Text('Bill', style: TextStyle(color: AppTheme.accent, fontSize: 12, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
+                ),
+              ),
+            ],
           ],
         ),
       ),

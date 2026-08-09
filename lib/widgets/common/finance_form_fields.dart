@@ -144,8 +144,9 @@ class SelectField extends StatelessWidget {
 class UploadBox extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
+  final String? previewUrl;
 
-  const UploadBox({super.key, required this.label, required this.onTap});
+  const UploadBox({super.key, required this.label, required this.onTap, this.previewUrl});
 
   @override
   Widget build(BuildContext context) {
@@ -162,8 +163,22 @@ class UploadBox extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.upload_outlined, color: AppTheme.textSecondary),
-            const SizedBox(width: 10),
+            if (previewUrl != null) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  previewUrl!,
+                  width: 36,
+                  height: 36,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.upload_outlined, color: AppTheme.textSecondary),
+                ),
+              ),
+              const SizedBox(width: 10),
+            ] else ...[
+              const Icon(Icons.upload_outlined, color: AppTheme.textSecondary),
+              const SizedBox(width: 10),
+            ],
             Expanded(
               child: Text(label, style: const TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none)),
             ),

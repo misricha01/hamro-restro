@@ -56,4 +56,57 @@ class DishTypeProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  bool isUpdating = false;
+  String? updateErrorMessage;
+
+  /// Updates a dish type and replaces it in [dishTypes] on success. Returns
+  /// the updated [DishType], or `null` if the call failed (see
+  /// [updateErrorMessage]).
+  Future<DishType?> updateDishType({required String id, required String dishTypeName}) async {
+    isUpdating = true;
+    updateErrorMessage = null;
+    notifyListeners();
+
+    try {
+      final dishType = await _repository.updateDishType(id: id, dishTypeName: dishTypeName);
+      dishTypes = dishTypes.map((d) => d.id == id ? dishType : d).toList();
+      return dishType;
+    } on ApiException catch (e) {
+      updateErrorMessage = e.message;
+      return null;
+    } catch (_) {
+      updateErrorMessage = 'Something went wrong. Please try again.';
+      return null;
+    } finally {
+      isUpdating = false;
+      notifyListeners();
+    }
+  }
+
+  bool isDeleting = false;
+  String? deleteErrorMessage;
+
+  /// Deletes a dish type and removes it from [dishTypes] on success. Returns
+  /// whether the call succeeded (see [deleteErrorMessage] on failure).
+  Future<bool> deleteDishType(String id) async {
+    isDeleting = true;
+    deleteErrorMessage = null;
+    notifyListeners();
+
+    try {
+      await _repository.deleteDishType(id);
+      dishTypes = dishTypes.where((d) => d.id != id).toList();
+      return true;
+    } on ApiException catch (e) {
+      deleteErrorMessage = e.message;
+      return false;
+    } catch (_) {
+      deleteErrorMessage = 'Something went wrong. Please try again.';
+      return false;
+    } finally {
+      isDeleting = false;
+      notifyListeners();
+    }
+  }
 }

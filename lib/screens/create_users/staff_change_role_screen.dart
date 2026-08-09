@@ -66,10 +66,42 @@ class _StaffChangeRoleScreenState extends State<StaffChangeRoleScreen> {
     }
   }
 
+  Future<void> _confirmUnassign() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surface,
+        title: const Text('Remove Role', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, decoration: TextDecoration.none)),
+        content: Text(
+          "Remove ${widget.staffName}'s current role (${widget.currentRoleName})? They'll have no role or permissions until a new one is assigned.",
+          style: const TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none))),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Remove', style: TextStyle(color: AppTheme.cancelled, fontWeight: FontWeight.w700, decoration: TextDecoration.none))),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final provider = context.read<StaffProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await provider.unassignRole(widget.staffId);
+    if (!mounted) return;
+    if (ok) {
+      Navigator.pop(context, '');
+    } else {
+      messenger.showSnackBar(SnackBar(content: Text(provider.unassignRoleErrorMessage ?? 'Something went wrong. Please try again.')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final roleProvider = context.watch<RoleProvider>();
-    final isAssigning = context.watch<StaffProvider>().isAssigningRole;
+    final staffProvider = context.watch<StaffProvider>();
+    final isAssigning = staffProvider.isAssigningRole;
+    final isUnassigning = staffProvider.isUnassigningRole;
+    final isBusy = isAssigning || isUnassigning;
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -149,19 +181,38 @@ class _StaffChangeRoleScreenState extends State<StaffChangeRoleScreen> {
       bottomNavigationBar: Container(
         padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + MediaQuery.of(context).padding.bottom),
         decoration: const BoxDecoration(color: AppTheme.surface, border: Border(top: BorderSide(color: AppTheme.divider))),
-        child: SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: isAssigning ? null : _confirm,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.cancelled,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        child: Row(
+          children: [
+            if (widget.currentRoleName.isNotEmpty)
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: isBusy ? null : _confirmUnassign,
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppTheme.cancelled),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: isUnassigning
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.cancelled))
+                      : const Text('Remove Role', style: TextStyle(color: AppTheme.cancelled, fontWeight: FontWeight.w700, fontSize: 15, decoration: TextDecoration.none)),
+                ),
+              ),
+            if (widget.currentRoleName.isNotEmpty) const SizedBox(width: 12),
+            Expanded(
+              flex: widget.currentRoleName.isNotEmpty ? 2 : 1,
+              child: ElevatedButton(
+                onPressed: isBusy ? null : _confirm,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.cancelled,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: isAssigning
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text('Change Role', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15, decoration: TextDecoration.none)),
+              ),
             ),
-            child: isAssigning
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Text('Change Role', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15, decoration: TextDecoration.none)),
-          ),
+          ],
         ),
       ),
     );

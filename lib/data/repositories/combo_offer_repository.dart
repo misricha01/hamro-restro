@@ -11,6 +11,7 @@ abstract class ComboOfferRepository {
     required String name,
     String? description,
     String? hsCode,
+    String? comboPhoto,
     required List<String> dishIds,
     required double offerPrice,
     required DateTime startsAt,
@@ -22,6 +23,7 @@ abstract class ComboOfferRepository {
     required String name,
     String? description,
     String? hsCode,
+    String? comboPhoto,
     required List<String> dishIds,
     required double offerPrice,
     required DateTime startsAt,
@@ -51,6 +53,7 @@ class ComboOfferRepositoryImpl implements ComboOfferRepository {
     required String name,
     String? description,
     String? hsCode,
+    String? comboPhoto,
     required List<String> dishIds,
     required double offerPrice,
     required DateTime startsAt,
@@ -60,6 +63,7 @@ class ComboOfferRepositoryImpl implements ComboOfferRepository {
       'name': name,
       if (description != null && description.isNotEmpty) 'description': description,
       if (hsCode != null && hsCode.isNotEmpty) 'hsCode': hsCode,
+      if (comboPhoto != null) 'comboPhoto': comboPhoto,
       'dishIds': dishIds,
       'offerPrice': offerPrice,
       'startsAt': startsAt.toUtc().toIso8601String(),
@@ -72,6 +76,7 @@ class ComboOfferRepositoryImpl implements ComboOfferRepository {
     required String name,
     String? description,
     String? hsCode,
+    String? comboPhoto,
     required List<String> dishIds,
     required double offerPrice,
     required DateTime startsAt,
@@ -80,7 +85,7 @@ class ComboOfferRepositoryImpl implements ComboOfferRepository {
     try {
       final response = await _dio.post(
         ApiConstants.comboOffers,
-        data: _body(name: name, description: description, hsCode: hsCode, dishIds: dishIds, offerPrice: offerPrice, startsAt: startsAt, endsAt: endsAt),
+        data: _body(name: name, description: description, hsCode: hsCode, comboPhoto: comboPhoto, dishIds: dishIds, offerPrice: offerPrice, startsAt: startsAt, endsAt: endsAt),
       );
       final raw = response.data['data'];
       if (raw is Map<String, dynamic> && raw['name'] != null) return ComboOffer.fromJson(raw);
@@ -103,6 +108,7 @@ class ComboOfferRepositoryImpl implements ComboOfferRepository {
     required String name,
     String? description,
     String? hsCode,
+    String? comboPhoto,
     required List<String> dishIds,
     required double offerPrice,
     required DateTime startsAt,
@@ -111,7 +117,7 @@ class ComboOfferRepositoryImpl implements ComboOfferRepository {
     try {
       final response = await _dio.patch(
         '${ApiConstants.comboOffers}/$id',
-        data: _body(name: name, description: description, hsCode: hsCode, dishIds: dishIds, offerPrice: offerPrice, startsAt: startsAt, endsAt: endsAt),
+        data: _body(name: name, description: description, hsCode: hsCode, comboPhoto: comboPhoto, dishIds: dishIds, offerPrice: offerPrice, startsAt: startsAt, endsAt: endsAt),
       );
       final raw = response.data['data'];
       if (raw is Map<String, dynamic> && raw['name'] != null) return ComboOffer.fromJson(raw);

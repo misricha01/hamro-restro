@@ -8,6 +8,10 @@ abstract class DishTypeRepository {
   Future<List<DishType>> getDishTypes();
 
   Future<DishType> createDishType({required String dishTypeName});
+
+  Future<DishType> updateDishType({required String id, required String dishTypeName});
+
+  Future<void> deleteDishType(String id);
 }
 
 class DishTypeRepositoryImpl implements DishTypeRepository {
@@ -44,6 +48,31 @@ class DishTypeRepositoryImpl implements DishTypeRepository {
         ..sort((a, b) => (int.tryParse(b.id) ?? 0).compareTo(int.tryParse(a.id) ?? 0));
       if (matches.isNotEmpty) return matches.first;
       throw const ApiException('Dish Type was created, but the list could not be refreshed.');
+    } on DioException catch (e) {
+      throw mapDioError(e);
+    }
+  }
+
+  @override
+  Future<DishType> updateDishType({required String id, required String dishTypeName}) async {
+    try {
+      final response = await _dio.patch('${ApiConstants.dishTypes}/$id', data: {'dishTypeName': dishTypeName});
+      final raw = response.data['data'];
+      if (raw is Map<String, dynamic> && raw['dishTypeName'] != null) return DishType.fromJson(raw);
+
+      final dishTypes = await getDishTypes();
+      final match = dishTypes.where((d) => d.id == id).toList();
+      if (match.isNotEmpty) return match.first;
+      throw const ApiException('Dish Type was updated, but the list could not be refreshed.');
+    } on DioException catch (e) {
+      throw mapDioError(e);
+    }
+  }
+
+  @override
+  Future<void> deleteDishType(String id) async {
+    try {
+      await _dio.delete('${ApiConstants.dishTypes}/$id');
     } on DioException catch (e) {
       throw mapDioError(e);
     }

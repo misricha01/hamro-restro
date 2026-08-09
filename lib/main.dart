@@ -7,6 +7,7 @@ import 'data/repositories/addon_repository.dart';
 import 'data/repositories/area_repository.dart';
 import 'data/repositories/auth_repository.dart';
 import 'data/repositories/category_repository.dart';
+import 'data/repositories/checkout_repository.dart';
 import 'data/repositories/customer_comment_repository.dart';
 import 'data/repositories/customer_group_repository.dart';
 import 'data/repositories/combo_offer_repository.dart';
@@ -18,6 +19,7 @@ import 'data/repositories/expense_category_repository.dart';
 import 'data/repositories/expense_repository.dart';
 import 'data/repositories/finance_repository.dart';
 import 'data/repositories/invoice_settings_repository.dart';
+import 'data/repositories/media_repository.dart';
 import 'data/repositories/notification_repository.dart';
 import 'data/repositories/order_analytics_repository.dart';
 import 'data/repositories/order_repository.dart';
@@ -43,6 +45,7 @@ import 'providers/addon_provider.dart';
 import 'providers/area_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/category_provider.dart';
+import 'providers/checkout_provider.dart';
 import 'providers/combo_offer_provider.dart';
 import 'providers/customer_comment_provider.dart';
 import 'providers/customer_group_provider.dart';
@@ -54,6 +57,7 @@ import 'providers/expense_category_provider.dart';
 import 'providers/expense_provider.dart';
 import 'providers/finance_provider.dart';
 import 'providers/invoice_settings_provider.dart';
+import 'providers/media_provider.dart';
 import 'providers/notification_provider.dart';
 import 'providers/order_analytics_provider.dart';
 import 'providers/order_provider.dart';
@@ -99,6 +103,7 @@ class RestroXApp extends StatelessWidget {
           return authProvider;
         }),
         ChangeNotifierProvider(create: (_) => OrderProvider(repository: OrderRepositoryImpl(dioClient: dioClient))),
+        ChangeNotifierProvider(create: (_) => CheckoutProvider(repository: CheckoutRepositoryImpl(dioClient: dioClient))),
         ChangeNotifierProvider(create: (_) => TableProvider(repository: TableRepositoryImpl(dioClient: dioClient))),
         ChangeNotifierProvider(create: (_) => AreaProvider(repository: AreaRepositoryImpl(dioClient: dioClient))),
         ChangeNotifierProvider(create: (_) => CategoryProvider(repository: CategoryRepositoryImpl(dioClient: dioClient))),
@@ -114,6 +119,7 @@ class RestroXApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => SupplierProvider(repository: SupplierRepositoryImpl(dioClient: dioClient))),
         ChangeNotifierProvider(create: (_) => UnitProvider(repository: UnitRepositoryImpl(dioClient: dioClient))),
         ChangeNotifierProvider(create: (_) => NotificationProvider(repository: NotificationRepositoryImpl(dioClient: dioClient))),
+        ChangeNotifierProvider(create: (_) => MediaProvider(repository: MediaRepositoryImpl(dioClient: dioClient))),
         ChangeNotifierProvider(create: (_) => StockGroupProvider(repository: StockGroupRepositoryImpl(dioClient: dioClient))),
         ChangeNotifierProvider(create: (_) => StockProvider(repository: StockRepositoryImpl(dioClient: dioClient))),
         Provider<RbacRepository>.value(value: RbacRepositoryImpl(dioClient: dioClient)),
