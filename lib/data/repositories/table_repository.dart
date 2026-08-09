@@ -29,6 +29,19 @@ abstract class TableRepository {
   });
 
   Future<void> deleteTable(String id);
+
+  /// `POST /api/table-order/move-table` — relocates [fromTableId]'s active
+  /// order session onto [toTableId]. Returns the backend's own status
+  /// message (e.g. "Orders moved to new table successfully", or a no-op
+  /// "No active orders to move" if the source had nothing active) — the
+  /// endpoint always responds `data: null` and 2xx even for the no-op case,
+  /// so the message is the only way to tell the two apart.
+  Future<String> moveTable({required String fromTableId, required String toTableId});
+
+  /// `POST /api/table-order/merge-table` — combines [fromTableIds]' active
+  /// order sessions onto [toTableId] (which need not be one of them).
+  /// Returns the backend's status message, same caveat as [moveTable].
+  Future<String> mergeTable({required List<String> fromTableIds, required String toTableId});
 }
 
 class TableRepositoryImpl implements TableRepository {
@@ -139,6 +152,32 @@ class TableRepositoryImpl implements TableRepository {
   Future<void> deleteTable(String id) async {
     try {
       await _dio.delete('${ApiConstants.tables}/$id');
+    } on DioException catch (e) {
+      throw mapDioError(e);
+    }
+  }
+
+  @override
+  Future<String> moveTable({required String fromTableId, required String toTableId}) async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.moveTable,
+        data: {'fromTableId': fromTableId, 'toTableId': toTableId},
+      );
+      return response.data['message'] as String? ?? 'Table moved';
+    } on DioException catch (e) {
+      throw mapDioError(e);
+    }
+  }
+
+  @override
+  Future<String> mergeTable({required List<String> fromTableIds, required String toTableId}) async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.mergeTable,
+        data: {'fromTableIds': fromTableIds, 'toTableId': toTableId},
+      );
+      return response.data['message'] as String? ?? 'Tables merged';
     } on DioException catch (e) {
       throw mapDioError(e);
     }

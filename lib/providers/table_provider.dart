@@ -146,4 +146,60 @@ class TableProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  bool isMoving = false;
+  String? moveErrorMessage;
+
+  /// Moves [fromTableId]'s active order onto [toTableId] and refreshes
+  /// [tables] so both tables' statuses reflect the change. Returns the
+  /// backend's status message on success (see [TableRepository.moveTable]
+  /// for why that message — not just a boolean — is what callers should
+  /// show), or `null` if the call failed (see [moveErrorMessage]).
+  Future<String?> moveTable({required String fromTableId, required String toTableId}) async {
+    isMoving = true;
+    moveErrorMessage = null;
+    notifyListeners();
+
+    try {
+      final message = await _repository.moveTable(fromTableId: fromTableId, toTableId: toTableId);
+      await fetchTables();
+      return message;
+    } on ApiException catch (e) {
+      moveErrorMessage = e.message;
+      return null;
+    } catch (_) {
+      moveErrorMessage = 'Something went wrong. Please try again.';
+      return null;
+    } finally {
+      isMoving = false;
+      notifyListeners();
+    }
+  }
+
+  bool isMerging = false;
+  String? mergeErrorMessage;
+
+  /// Combines [fromTableIds]' active orders onto [toTableId] and refreshes
+  /// [tables]. Returns the backend's status message on success, or `null`
+  /// if the call failed (see [mergeErrorMessage]).
+  Future<String?> mergeTables({required List<String> fromTableIds, required String toTableId}) async {
+    isMerging = true;
+    mergeErrorMessage = null;
+    notifyListeners();
+
+    try {
+      final message = await _repository.mergeTable(fromTableIds: fromTableIds, toTableId: toTableId);
+      await fetchTables();
+      return message;
+    } on ApiException catch (e) {
+      mergeErrorMessage = e.message;
+      return null;
+    } catch (_) {
+      mergeErrorMessage = 'Something went wrong. Please try again.';
+      return null;
+    } finally {
+      isMerging = false;
+      notifyListeners();
+    }
+  }
 }

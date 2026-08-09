@@ -6,7 +6,6 @@ import '../../data/models/orders/table_model.dart';
 import '../../providers/order_provider.dart';
 import '../../providers/table_provider.dart';
 import '../../widgets/common/confirm_delete_dialog.dart';
-import '../../widgets/common/edit_delete_actions_sheet.dart';
 import '../../widgets/common/order_actions_sheet.dart';
 import '../../widgets/common/order_empty_state.dart';
 import '../manage/add_table_screen.dart';
@@ -14,6 +13,7 @@ import '../notification/notification_screen.dart';
 import '../quick_billing/quick_billing_screen.dart';
 import 'checkout_screen.dart';
 import 'saved_order_screen.dart';
+import 'table_transfer_sheets.dart';
 
 class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key});
@@ -480,12 +480,24 @@ class _TableGridState extends State<_TableGrid> {
   String _selectedCategory = 'All';
 
   Future<void> _openTableActions(RestaurantTable table) async {
-    final action = await EditDeleteActionsSheet.show(context, title: table.tableName);
+    final action = await TableActionsSheet.show(context, table: table);
     if (!mounted || action == null) return;
 
     if (action == 'edit') {
       final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => AddTableScreen(editingTable: table)));
       if (result != null) widget.onRefresh();
+      return;
+    }
+
+    if (action == 'move') {
+      await _moveTable(table);
+      return;
+    }
+
+    if (action == 'merge') {
+      await Navigator.push(context, MaterialPageRoute(builder: (context) => MergeTablesScreen(initialTableId: table.id)));
+      if (!mounted) return;
+      context.read<OrderProvider>().fetchOrders();
       return;
     }
 
@@ -498,6 +510,27 @@ class _TableGridState extends State<_TableGrid> {
       final success = await provider.deleteTable(table.id);
       if (!mounted) return;
       messenger.showSnackBar(SnackBar(content: Text(success ? 'Table deleted' : (provider.deleteErrorMessage ?? 'Failed to delete table'))));
+    }
+  }
+
+  Future<void> _moveTable(RestaurantTable table) async {
+    final destination = await SelectTableSheet.show(
+      context,
+      tables: widget.tables.where((t) => t.id != table.id).toList(),
+      title: 'Move To',
+    );
+    if (destination == null || !mounted) return;
+
+    final provider = context.read<TableProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    final message = await provider.moveTable(fromTableId: table.id, toTableId: destination.id);
+    if (!mounted) return;
+
+    if (message != null) {
+      messenger.showSnackBar(SnackBar(content: Text(message)));
+      context.read<OrderProvider>().fetchOrders();
+    } else {
+      messenger.showSnackBar(SnackBar(content: Text(provider.moveErrorMessage ?? 'Failed to move table')));
     }
   }
 

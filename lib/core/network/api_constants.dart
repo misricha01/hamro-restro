@@ -51,6 +51,8 @@ class ApiConstants {
   static const String supplierTransactions = '/api/supplier-transaction';
   static const String media = '/api/media';
   static const String checkout = '/api/checkout';
+  static const String moveTable = '/api/table-order/move-table';
+  static const String mergeTable = '/api/table-order/merge-table';
 
   static const Duration connectTimeout = Duration(seconds: 15);
   static const Duration receiveTimeout = Duration(seconds: 15);
