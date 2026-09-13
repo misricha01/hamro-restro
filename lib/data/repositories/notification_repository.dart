@@ -18,6 +18,21 @@ abstract class NotificationRepository {
   /// `notificationIds` array, not a single id, so this accepts a list even
   /// when callers only ever mark one notification at a time.
   Future<void> markAsRead(List<String> ids);
+
+  /// `GET /api/notification/log` — same [AppNotification] shape as
+  /// [getNotifications], parsed defensively so an unexpected field layout
+  /// degrades to empty/default values rather than throwing.
+  Future<List<AppNotification>> getNotificationLog();
+
+  Future<AppNotification> updateNotification({
+    required String id,
+    required String title,
+    required String subject,
+    required String notificationMessage,
+    required String type,
+  });
+
+  Future<void> deleteNotification(String id);
 }
 
 class NotificationRepositoryImpl implements NotificationRepository {
@@ -75,6 +90,53 @@ class NotificationRepositoryImpl implements NotificationRepository {
   Future<void> markAsRead(List<String> ids) async {
     try {
       await _dio.patch('${ApiConstants.notifications}/read', data: {'notificationIds': ids});
+    } on DioException catch (e) {
+      throw mapDioError(e);
+    }
+  }
+
+  @override
+  Future<List<AppNotification>> getNotificationLog() async {
+    try {
+      final response = await _dio.get('${ApiConstants.notifications}/log', queryParameters: {'page': 1, 'take': 100});
+      final data = response.data['data'] as List<dynamic>? ?? [];
+      return data.map((e) => AppNotification.fromJson(e as Map<String, dynamic>)).toList();
+    } on DioException catch (e) {
+      throw mapDioError(e);
+    }
+  }
+
+  @override
+  Future<AppNotification> updateNotification({
+    required String id,
+    required String title,
+    required String subject,
+    required String notificationMessage,
+    required String type,
+  }) async {
+    try {
+      final response = await _dio.patch('${ApiConstants.notifications}/$id', data: {
+        'title': title,
+        'subject': subject,
+        'notificationMessage': notificationMessage,
+        'type': type,
+      });
+      final raw = response.data['data'];
+      if (raw is Map<String, dynamic> && raw['title'] != null) return AppNotification.fromJson(raw);
+
+      final notifications = await getNotifications();
+      final match = notifications.where((n) => n.id == id).toList();
+      if (match.isNotEmpty) return match.first;
+      throw const ApiException('Notification was updated, but the list could not be refreshed.');
+    } on DioException catch (e) {
+      throw mapDioError(e);
+    }
+  }
+
+  @override
+  Future<void> deleteNotification(String id) async {
+    try {
+      await _dio.delete('${ApiConstants.notifications}/$id');
     } on DioException catch (e) {
       throw mapDioError(e);
     }

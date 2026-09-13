@@ -1,26 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
-import '../../data/models/orders/order_model.dart';
-import '../../providers/order_provider.dart';
+import '../../data/repositories/kot_repository.dart';
+import '../../providers/kot_provider.dart';
+import '../../providers/order_provider.dart' show LoadStatus;
 import '../../widgets/common/setting_empty_state.dart';
 
 const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 String _formatDate(DateTime d) => '${_months[d.month - 1]} ${d.day.toString().padLeft(2, '0')}, ${d.year}';
 
-/// Pairs a [Kot] with the [Order] it belongs to, so the flattened KOT list
-/// can still show which table/order each ticket came from.
-class _KotEntry {
-  final Kot kot;
-  final Order order;
-  const _KotEntry({required this.kot, required this.order});
-}
-
 /// "KOT History" reached from Orders' 3-dot Actions menu, backed by
-/// [OrderProvider] (`GET /api/order`) — the same data already powering the
-/// Orders screen's live KOT tab. There's no separate history endpoint, so
-/// this shows every KOT that's no longer pending (completed or cancelled).
+/// [KotProvider] (`GET /api/kot`). Shows every KOT that's no longer pending
+/// (completed or cancelled).
 class KotHistoryScreen extends StatefulWidget {
   const KotHistoryScreen({super.key});
 
@@ -32,15 +24,15 @@ class _KotHistoryScreenState extends State<KotHistoryScreen> {
   @override
   void initState() {
     super.initState();
-    final provider = context.read<OrderProvider>();
+    final provider = context.read<KotProvider>();
     if (provider.status == LoadStatus.idle) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => provider.fetchOrders());
+      WidgetsBinding.instance.addPostFrameCallback((_) => provider.fetchKots());
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final orderProvider = context.watch<OrderProvider>();
+    final kotProvider = context.watch<KotProvider>();
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -65,23 +57,19 @@ class _KotHistoryScreenState extends State<KotHistoryScreen> {
           const SizedBox(width: 4),
         ],
       ),
-      body: SafeArea(child: _buildBody(orderProvider)),
+      body: SafeArea(child: _buildBody(kotProvider)),
     );
   }
 
-  Widget _buildBody(OrderProvider provider) {
+  Widget _buildBody(KotProvider provider) {
     if (provider.status == LoadStatus.loading || provider.status == LoadStatus.idle) {
       return const Center(child: CircularProgressIndicator(color: AppTheme.accent));
     }
     if (provider.status == LoadStatus.error) {
-      return _ErrorState(message: provider.errorMessage ?? 'Something went wrong.', onRetry: () => context.read<OrderProvider>().fetchOrders());
+      return _ErrorState(message: provider.errorMessage ?? 'Something went wrong.', onRetry: () => context.read<KotProvider>().fetchKots());
     }
 
-    final resolved = <_KotEntry>[
-      for (final order in provider.orders)
-        for (final kot in order.kots)
-          if (kot.orderStatus.toLowerCase() != 'pending') _KotEntry(kot: kot, order: order),
-    ];
+    final resolved = provider.kots.where((record) => record.kot.orderStatus.toLowerCase() != 'pending').toList();
 
     if (resolved.isEmpty) {
       return const SettingEmptyState(title: 'KOT History', subtitle: 'No KOT History found. Completed and cancelled KOTs will show up here.');
@@ -89,12 +77,12 @@ class _KotHistoryScreenState extends State<KotHistoryScreen> {
 
     return RefreshIndicator(
       color: AppTheme.accent,
-      onRefresh: () => context.read<OrderProvider>().fetchOrders(),
+      onRefresh: () => context.read<KotProvider>().fetchKots(),
       child: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: resolved.length,
         separatorBuilder: (context, index) => const SizedBox(height: 12),
-        itemBuilder: (context, index) => _KotHistoryCard(entry: resolved[index]),
+        itemBuilder: (context, index) => _KotHistoryCard(record: resolved[index]),
       ),
     );
   }
@@ -130,12 +118,12 @@ class _ErrorState extends StatelessWidget {
 }
 
 class _KotHistoryCard extends StatelessWidget {
-  final _KotEntry entry;
-  const _KotHistoryCard({required this.entry});
+  final KotRecord record;
+  const _KotHistoryCard({required this.record});
 
   @override
   Widget build(BuildContext context) {
-    final kot = entry.kot;
+    final kot = record.kot;
     final cancelled = kot.orderStatus.toLowerCase() == 'cancelled';
     final statusColor = cancelled ? AppTheme.cancelled : AppTheme.completed;
 
@@ -162,7 +150,10 @@ class _KotHistoryCard extends StatelessWidget {
                     Text('KOT #${kot.kotNumber}', style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600, fontSize: 15, decoration: TextDecoration.none)),
                     const SizedBox(height: 3),
                     Text(
-                      [entry.order.table?.tableName ?? 'Order #${entry.order.id}', _formatDate(entry.order.createdAt)].join(' · '),
+                      [
+                        record.tableName ?? (record.orderId != null ? 'Order #${record.orderId}' : null),
+                        if (record.createdAt != null) _formatDate(record.createdAt!),
+                      ].whereType<String>().join(' · '),
                       style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12.5, decoration: TextDecoration.none),
                     ),
                   ],

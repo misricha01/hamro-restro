@@ -4,6 +4,43 @@ import '../../core/network/dio_client.dart';
 import '../../core/network/api_exception.dart';
 import '../models/type_of_menu/type_of_menu_model.dart';
 
+class TypeOfMenuStats {
+  final int totalMenuType;
+  final int activeMenuType;
+  final String? topSoldName;
+  final int? topSoldOrders;
+  final double averageDishPerMenuType;
+  final int unusedCount;
+  final List<String> unusedNames;
+
+  TypeOfMenuStats({
+    required this.totalMenuType,
+    required this.activeMenuType,
+    this.topSoldName,
+    this.topSoldOrders,
+    required this.averageDishPerMenuType,
+    required this.unusedCount,
+    this.unusedNames = const [],
+  });
+
+  factory TypeOfMenuStats.fromJson(Map<String, dynamic> json) {
+    final menuType = json['menuType'] as Map<String, dynamic>? ?? {};
+    final topSold = json['topSold'] as Map<String, dynamic>?;
+    final unusedMenuType = json['unusedMenuType'] as Map<String, dynamic>? ?? {};
+    final names = unusedMenuType['names'] as List<dynamic>? ?? [];
+
+    return TypeOfMenuStats(
+      totalMenuType: menuType['total'] as int? ?? 0,
+      activeMenuType: menuType['activeCount'] as int? ?? 0,
+      topSoldName: topSold?['name'] as String?,
+      topSoldOrders: topSold?['noOfOrder'] as int?,
+      averageDishPerMenuType: (json['averageDishPerMenuType'] as num?)?.toDouble() ?? 0.0,
+      unusedCount: unusedMenuType['count'] as int? ?? 0,
+      unusedNames: names.map((e) => e.toString()).toList(),
+    );
+  }
+}
+
 abstract class TypeOfMenuRepository {
   Future<List<TypeOfMenu>> getTypeOfMenus();
 
@@ -12,6 +49,8 @@ abstract class TypeOfMenuRepository {
   Future<TypeOfMenu> updateTypeOfMenu({required String id, required String name, required String description, required bool status});
 
   Future<void> deleteTypeOfMenu(String id);
+
+  Future<TypeOfMenuStats> getTypeOfMenuStats();
 }
 
 class TypeOfMenuRepositoryImpl implements TypeOfMenuRepository {
@@ -73,6 +112,17 @@ class TypeOfMenuRepositoryImpl implements TypeOfMenuRepository {
   Future<void> deleteTypeOfMenu(String id) async {
     try {
       await _dio.delete('${ApiConstants.typeOfMenus}/$id');
+    } on DioException catch (e) {
+      throw mapDioError(e);
+    }
+  }
+
+  @override
+  Future<TypeOfMenuStats> getTypeOfMenuStats() async {
+    try {
+      final response = await _dio.get('${ApiConstants.typeOfMenus}/stats');
+      final data = response.data['data'] as Map<String, dynamic>? ?? {};
+      return TypeOfMenuStats.fromJson(data);
     } on DioException catch (e) {
       throw mapDioError(e);
     }

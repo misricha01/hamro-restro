@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/common/finance_form_fields.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -162,6 +163,16 @@ class _LoginScreenState extends State<LoginScreen> {
                       'Only authorized staff can login',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: AppTheme.textSecondary, fontSize: 12.5, decoration: TextDecoration.none),
+                    ),
+                    const SizedBox(height: 8),
+                    Center(
+                      child: GestureDetector(
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterScreen())),
+                        child: const Text(
+                          'New here? Create an account',
+                          style: TextStyle(color: AppTheme.accent, fontSize: 13, fontWeight: FontWeight.w600, decoration: TextDecoration.none),
+                        ),
+                      ),
                     ),
                   ],
                 ),

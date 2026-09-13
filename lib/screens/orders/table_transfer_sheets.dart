@@ -40,6 +40,8 @@ class _TableActionsSheetContent extends StatelessWidget {
               const SizedBox(height: 12),
               _ActionRow(icon: Icons.edit_outlined, label: 'Edit', onTap: () => Navigator.pop(context, 'edit')),
               const Divider(height: 1, color: AppTheme.divider),
+              _ActionRow(icon: Icons.history, label: 'Activity', onTap: () => Navigator.pop(context, 'activity')),
+              const Divider(height: 1, color: AppTheme.divider),
               if (occupied) ...[
                 _ActionRow(icon: Icons.swap_horiz, label: 'Move Table', onTap: () => Navigator.pop(context, 'move')),
                 const Divider(height: 1, color: AppTheme.divider),

@@ -14,6 +14,10 @@ class TableProvider extends ChangeNotifier {
   List<RestaurantTable> tables = [];
   String? errorMessage;
 
+  TableStats? tableStats;
+  LoadStatus tableStatsStatus = LoadStatus.idle;
+  String? tableStatsError;
+
   bool isCreating = false;
   String? createErrorMessage;
 
@@ -28,6 +32,24 @@ class TableProvider extends ChangeNotifier {
     } on ApiException catch (e) {
       errorMessage = e.message;
       status = LoadStatus.error;
+    }
+    notifyListeners();
+  }
+
+  Future<void> fetchTableStats() async {
+    tableStatsStatus = LoadStatus.loading;
+    tableStatsError = null;
+    notifyListeners();
+
+    try {
+      tableStats = await _repository.getTableStats();
+      tableStatsStatus = LoadStatus.loaded;
+    } on ApiException catch (e) {
+      tableStatsError = e.message;
+      tableStatsStatus = LoadStatus.error;
+    } catch (_) {
+      tableStatsError = 'Something went wrong. Please try again.';
+      tableStatsStatus = LoadStatus.error;
     }
     notifyListeners();
   }

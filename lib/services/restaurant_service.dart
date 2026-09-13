@@ -42,4 +42,16 @@ class RestaurantService {
       throw mapDioError(e);
     }
   }
+
+  /// `POST /api/restaurant/transfer-ownership` (operation id
+  /// `RestaurantController_transferOwnership`). Body is `{"userId": "..."}`
+  /// per `TransferOwnershipDTO` — the target user must already be staff on
+  /// this restaurant. Caller's role changes to Admin on success.
+  static Future<void> transferOwnership(String userId) async {
+    try {
+      await ApiClient.instance.post('/restaurant/transfer-ownership', data: {'userId': userId});
+    } on DioException catch (e) {
+      throw mapDioError(e);
+    }
+  }
 }

@@ -36,6 +36,9 @@ class _ManageSubMenuScreenState extends State<ManageSubMenuScreen> {
     if (provider.status == LoadStatus.idle) {
       WidgetsBinding.instance.addPostFrameCallback((_) => provider.fetchTypeOfMenus());
     }
+    if (provider.typeOfMenuStatsStatus == LoadStatus.idle) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => provider.fetchTypeOfMenuStats());
+    }
     final dishProvider = context.read<DishProvider>();
     if (dishProvider.status == LoadStatus.idle) {
       WidgetsBinding.instance.addPostFrameCallback((_) => dishProvider.fetchDishes());
@@ -143,6 +146,36 @@ class _ManageSubMenuScreenState extends State<ManageSubMenuScreen> {
     );
   }
 
+  Widget _buildStats(TypeOfMenuProvider provider) {
+    final stats = provider.typeOfMenuStats;
+    if (provider.typeOfMenuStatsStatus != LoadStatus.loaded || stats == null) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(color: AppTheme.card, borderRadius: BorderRadius.circular(12)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Active Menu Types: ${stats.activeMenuType}/${stats.totalMenuType}',
+              style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14, fontWeight: FontWeight.w600, decoration: TextDecoration.none),
+            ),
+            if (stats.topSoldName != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                'Top Sold: ${stats.topSoldName} (${stats.topSoldOrders ?? 0} orders)',
+                style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13, decoration: TextDecoration.none),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildBody(TypeOfMenuProvider provider, List<Dish> dishes) {
     switch (provider.status) {
       case LoadStatus.idle:
@@ -172,6 +205,7 @@ class _ManageSubMenuScreenState extends State<ManageSubMenuScreen> {
         final filtered = _filtered(provider.types);
         return Column(
           children: [
+            _buildStats(provider),
             Expanded(
               child: filtered.isEmpty
                   ? Center(

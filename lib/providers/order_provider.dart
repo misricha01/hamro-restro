@@ -56,4 +56,93 @@ class OrderProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  bool isUpdatingItemStatus = false;
+  String? updateItemStatusErrorMessage;
+
+  /// Updates a single dish item's status (e.g. mark it `'completed'` or
+  /// `'cancelled'`) and refetches [orders] on success so every screen
+  /// reading from this provider sees the change.
+  Future<bool> updateOrderItemDishStatus({required String itemId, required String dishStatus}) async {
+    isUpdatingItemStatus = true;
+    updateItemStatusErrorMessage = null;
+    notifyListeners();
+
+    try {
+      await _repository.updateOrderItemDishStatus(itemId: itemId, dishStatus: dishStatus);
+      await fetchOrders();
+      return true;
+    } on ApiException catch (e) {
+      updateItemStatusErrorMessage = e.message;
+      return false;
+    } catch (_) {
+      updateItemStatusErrorMessage = 'Something went wrong. Please try again.';
+      return false;
+    } finally {
+      isUpdatingItemStatus = false;
+      notifyListeners();
+    }
+  }
+
+  /// `GET /api/order/{id}` — fetches a single order fresh from the backend.
+  /// Not used by any screen yet; exposed for a future order-detail view.
+  Future<Order?> getOrder(String id) async {
+    try {
+      return await _repository.getOrder(id);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  bool isReassigning = false;
+  String? reassignErrorMessage;
+
+  /// `PATCH /api/order/{id}` — reassigns table/staff on an existing order.
+  /// Not wired to any UI yet (no staff/table-reassignment picker exists on
+  /// the Orders screen); exposed so the capability is available once one
+  /// is built.
+  Future<bool> updateOrder({required String id, String? tableId, String? assignedStaff}) async {
+    isReassigning = true;
+    reassignErrorMessage = null;
+    notifyListeners();
+
+    try {
+      await _repository.updateOrder(id: id, tableId: tableId, assignedStaff: assignedStaff);
+      await fetchOrders();
+      return true;
+    } on ApiException catch (e) {
+      reassignErrorMessage = e.message;
+      return false;
+    } catch (_) {
+      reassignErrorMessage = 'Something went wrong. Please try again.';
+      return false;
+    } finally {
+      isReassigning = false;
+      notifyListeners();
+    }
+  }
+
+  bool isDeletingOrder = false;
+  String? deleteOrderErrorMessage;
+
+  Future<bool> deleteOrder(String id) async {
+    isDeletingOrder = true;
+    deleteOrderErrorMessage = null;
+    notifyListeners();
+
+    try {
+      await _repository.deleteOrder(id);
+      orders = orders.where((o) => o.id != id).toList();
+      return true;
+    } on ApiException catch (e) {
+      deleteOrderErrorMessage = e.message;
+      return false;
+    } catch (_) {
+      deleteOrderErrorMessage = 'Something went wrong. Please try again.';
+      return false;
+    } finally {
+      isDeletingOrder = false;
+      notifyListeners();
+    }
+  }
 }

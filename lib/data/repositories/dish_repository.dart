@@ -4,8 +4,68 @@ import '../../core/network/dio_client.dart';
 import '../../core/network/api_exception.dart';
 import '../models/dish/dish_model.dart';
 
+class DishStats {
+  final int totalDish;
+  final int activeDish;
+  final String? topSoldName;
+  final int? topSoldOrders;
+  final String? topDishTypeName;
+  final int? topDishTypeCount;
+
+  const DishStats({
+    required this.totalDish,
+    required this.activeDish,
+    this.topSoldName,
+    this.topSoldOrders,
+    this.topDishTypeName,
+    this.topDishTypeCount,
+  });
+
+  factory DishStats.fromJson(Map<String, dynamic> json) {
+    final dish = json['dish'] as Map<String, dynamic>?;
+    final topSold = json['topSold'] as Map<String, dynamic>?;
+    final topDishType = json['topDishType'] as Map<String, dynamic>?;
+    return DishStats(
+      totalDish: (dish?['total'] as num?)?.toInt() ?? 0,
+      activeDish: (dish?['activeDish'] as num?)?.toInt() ?? 0,
+      topSoldName: topSold?['name'] as String?,
+      topSoldOrders: (topSold?['noOfOrder'] as num?)?.toInt(),
+      topDishTypeName: topDishType?['name'] as String?,
+      topDishTypeCount: (topDishType?['noOfDish'] as num?)?.toInt(),
+    );
+  }
+}
+
+/// A single row from `GET /api/dish/{id}/transactions` — "checkoutId,
+/// amount, quantity, invoice number" per the Swagger summary; `date` isn't
+/// explicitly documented there but is parsed defensively in case it's
+/// present, matching every other transaction-shaped model in this app.
+class DishTransaction {
+  final String? checkoutId;
+  final double amount;
+  final int quantity;
+  final String? invoiceNumber;
+  final DateTime? date;
+
+  const DishTransaction({this.checkoutId, this.amount = 0, this.quantity = 0, this.invoiceNumber, this.date});
+
+  factory DishTransaction.fromJson(Map<String, dynamic> json) {
+    return DishTransaction(
+      checkoutId: json['checkoutId']?.toString(),
+      amount: double.tryParse(json['amount']?.toString() ?? '') ?? 0,
+      quantity: (json['quantity'] as num?)?.toInt() ?? 0,
+      invoiceNumber: json['invoiceNumber'] as String?,
+      date: DateTime.tryParse((json['date'] ?? json['createdAt'] ?? '').toString()),
+    );
+  }
+}
+
 abstract class DishRepository {
   Future<List<Dish>> getDishes();
+
+  Future<DishStats> getDishStats();
+
+  Future<List<DishTransaction>> getDishTransactions(String dishId);
 
   Future<Dish> createDish({
     required String dishName,
@@ -62,6 +122,17 @@ class DishRepositoryImpl implements DishRepository {
       final response = await _dio.get(ApiConstants.dishes, queryParameters: {'page': 1, 'take': 200});
       final data = response.data['data'] as List<dynamic>? ?? [];
       return data.map((e) => Dish.fromJson(e as Map<String, dynamic>)).toList();
+    } on DioException catch (e) {
+      throw mapDioError(e);
+    }
+  }
+
+  @override
+  Future<DishStats> getDishStats() async {
+    try {
+      final response = await _dio.get('${ApiConstants.dishes}/dish-stats');
+      final data = response.data['data'] as Map<String, dynamic>? ?? {};
+      return DishStats.fromJson(data);
     } on DioException catch (e) {
       throw mapDioError(e);
     }
@@ -230,6 +301,17 @@ class DishRepositoryImpl implements DishRepository {
   Future<void> deleteDish(String id) async {
     try {
       await _dio.delete('${ApiConstants.dishes}/$id');
+    } on DioException catch (e) {
+      throw mapDioError(e);
+    }
+  }
+
+  @override
+  Future<List<DishTransaction>> getDishTransactions(String dishId) async {
+    try {
+      final response = await _dio.get('${ApiConstants.dishes}/$dishId/transactions');
+      final data = response.data['data'] as List<dynamic>? ?? [];
+      return data.map((e) => DishTransaction.fromJson(e as Map<String, dynamic>)).toList();
     } on DioException catch (e) {
       throw mapDioError(e);
     }

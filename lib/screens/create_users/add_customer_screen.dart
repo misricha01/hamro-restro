@@ -54,6 +54,9 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
   bool _isDirty = false;
   bool _nameError = false;
   bool _contactError = false;
+  bool _emailError = false;
+
+  static final RegExp _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 
   static TimeOfDay? _parseTime(String? hhmm) {
     if (hhmm == null) return null;
@@ -174,22 +177,29 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
       _isDirty = false;
       _nameError = false;
       _contactError = false;
+      _emailError = false;
     });
   }
 
   Future<void> _saveCustomer() async {
     final name = _nameController.text.trim();
     final phone = _contactController.text.trim();
+    final email = _emailController.text.trim();
+    // The backend's CreateCustomerDTO requires `emailAddress` (confirmed
+    // live: a blank one 400s with "emailAddress must be an email,
+    // emailAddress should not be empty") even though this field used to be
+    // optional in the UI.
     setState(() {
       _nameError = name.isEmpty;
       _contactError = phone.isEmpty;
+      _emailError = email.isEmpty || !_emailPattern.hasMatch(email);
     });
-    if (_nameError || _contactError) return;
+    if (_nameError || _contactError || _emailError) return;
 
     final provider = context.read<CustomerProvider>();
     final messenger = ScaffoldMessenger.of(context);
     final comment = _commentController.text.trim();
-    final emailAddress = _emailController.text.trim().isEmpty ? null : _emailController.text.trim();
+    final emailAddress = email;
     final companyName = _companyController.text.trim().isEmpty ? null : _companyController.text.trim();
     final panVatNumber = _panVatController.text.trim().isEmpty ? null : _panVatController.text.trim();
     final discount = _discountController.text.trim().isEmpty ? null : _discountController.text.trim();
@@ -292,13 +302,19 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
           ),
           const SizedBox(height: 20),
 
-          const _FieldLabel(label: 'Email', required: false),
+          const _FieldLabel(label: 'Email', required: true),
           const SizedBox(height: 8),
           _AppTextField(
             controller: _emailController,
             hint: "Enter Customer's Email",
             keyboardType: TextInputType.emailAddress,
-            onChanged: (_) => _markDirty(),
+            errorText: _emailError ? 'A valid email is required' : null,
+            onChanged: (v) {
+              _markDirty();
+              if (_emailError && v.trim().isNotEmpty && _emailPattern.hasMatch(v.trim())) {
+                setState(() => _emailError = false);
+              }
+            },
           ),
           const SizedBox(height: 20),
 

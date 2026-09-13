@@ -32,6 +32,31 @@ class DishProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  DishStats? dishStats;
+  LoadStatus dishStatsStatus = LoadStatus.idle;
+  String? dishStatsError;
+
+  Future<void> fetchDishStats() async {
+    dishStatsStatus = LoadStatus.loading;
+    dishStatsError = null;
+    notifyListeners();
+
+    try {
+      dishStats = await _repository.getDishStats();
+      dishStatsStatus = LoadStatus.loaded;
+    } on ApiException catch (e) {
+      dishStatsError = e.message;
+      dishStatsStatus = LoadStatus.error;
+    }
+    notifyListeners();
+  }
+
+  /// `GET /api/dish/{id}/transactions` — not cached on the provider since
+  /// it's only ever needed transiently by [DishTransactionsSheet].
+  Future<List<DishTransaction>> getDishTransactions(String dishId) {
+    return _repository.getDishTransactions(dishId);
+  }
+
   bool isCreating = false;
   String? createErrorMessage;
 

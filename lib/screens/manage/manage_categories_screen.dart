@@ -25,6 +25,9 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
     if (provider.status == LoadStatus.idle) {
       WidgetsBinding.instance.addPostFrameCallback((_) => provider.fetchCategories());
     }
+    if (provider.categoryStatsStatus == LoadStatus.idle) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => provider.fetchCategoryStats());
+    }
   }
 
   Future<void> _addCategory() async {
@@ -82,9 +85,21 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
             if (categoryProvider.status == LoadStatus.loaded && categoryProvider.categories.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(bottom: 14),
-                child: Text(
-                  'Total Category : ${categoryProvider.categories.length}',
-                  style: const TextStyle(fontSize: 15, color: AppTheme.textSecondary, decoration: TextDecoration.none),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Total Category : ${categoryProvider.categories.length}',
+                      style: const TextStyle(fontSize: 15, color: AppTheme.textSecondary, decoration: TextDecoration.none),
+                    ),
+                    if (categoryProvider.categoryStatsStatus == LoadStatus.loaded &&
+                        categoryProvider.categoryStats != null &&
+                        categoryProvider.categoryStats!.topSoldName != null)
+                      Text(
+                        'Top Sold: ${categoryProvider.categoryStats!.topSoldName} (${categoryProvider.categoryStats!.topSoldOrders ?? 0} orders)',
+                        style: const TextStyle(fontSize: 15, color: AppTheme.textSecondary, decoration: TextDecoration.none),
+                      ),
+                  ],
                 ),
               ),
           ],

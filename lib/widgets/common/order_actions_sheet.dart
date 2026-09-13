@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
+import '../../data/models/table_order/table_order_session.dart';
 import '../../screens/reservation/add_reservation_screen.dart';
+import '../../screens/orders/checkout_history_screen.dart';
 import '../../screens/orders/kot_history_screen.dart';
 import '../../screens/orders/recent_transactions_screen.dart';
 import '../../screens/orders/saved_order_screen.dart';
+import '../../screens/orders/table_order_sessions_screen.dart';
 import '../../screens/orders/printers_setting_screen.dart';
 import '../../screens/orders/kot_type_setting_screen.dart';
 import '../../screens/orders/invoice_setting_screen.dart';
@@ -64,6 +67,8 @@ class OrderActionsSheet extends StatelessWidget {
               _ActionGroup(items: [
                 _ActionData(Icons.format_list_bulleted, 'KOT History', screenBuilder: (context) => const KotHistoryScreen()),
                 _ActionData(Icons.description_outlined, 'Recent Transactions', screenBuilder: (context) => const RecentTransactionsScreen()),
+                _ActionData(Icons.receipt_long_outlined, 'Checkout History', screenBuilder: (context) => const CheckoutHistoryScreen()),
+                _ActionData(Icons.table_bar_outlined, 'Table Sessions', screenBuilder: (context) => const TableOrderSessionsScreen()),
                 _ActionData(Icons.save_outlined, 'Last Saved Orders - Offline', screenBuilder: (context) => const SavedOrderScreen()),
               ]),
               const SizedBox(height: 16),

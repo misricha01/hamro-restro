@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/orders/order_model.dart';
 import '../../data/models/orders/table_model.dart';
+import '../../data/repositories/table_repository.dart' show TableStats;
+import '../../providers/kot_provider.dart';
 import '../../providers/order_provider.dart';
 import '../../providers/table_provider.dart';
 import '../../widgets/common/confirm_delete_dialog.dart';
@@ -13,6 +15,7 @@ import '../notification/notification_screen.dart';
 import '../quick_billing/quick_billing_screen.dart';
 import 'checkout_screen.dart';
 import 'saved_order_screen.dart';
+import 'table_activity_screen.dart';
 import 'table_transfer_sheets.dart';
 
 class OrdersScreen extends StatefulWidget {
@@ -351,9 +354,161 @@ class _KotTabState extends State<_KotTab> {
   }
 }
 
+Future<String?> _showKotActionsSheet(BuildContext context, {required bool alreadyCompleted}) {
+  return showModalBottomSheet<String>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    builder: (context) => Container(
+      decoration: const BoxDecoration(color: AppTheme.surface, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (!alreadyCompleted)
+                InkWell(
+                  onTap: () => Navigator.pop(context, 'complete'),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 14),
+                    child: Row(children: [
+                      Icon(Icons.check_circle_outline, color: AppTheme.completed, size: 22),
+                      SizedBox(width: 14),
+                      Text('Mark Complete', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600, fontSize: 15, decoration: TextDecoration.none)),
+                    ]),
+                  ),
+                ),
+              const Divider(height: 1, color: AppTheme.divider),
+              InkWell(
+                onTap: () => Navigator.pop(context, 'cancel'),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 14),
+                  child: Row(children: [
+                    Icon(Icons.cancel_outlined, color: AppTheme.cancelled, size: 22),
+                    SizedBox(width: 14),
+                    Text('Cancel KOT', style: TextStyle(color: AppTheme.cancelled, fontWeight: FontWeight.w600, fontSize: 15, decoration: TextDecoration.none)),
+                  ]),
+                ),
+              ),
+              const Divider(height: 1, color: AppTheme.divider),
+              InkWell(
+                onTap: () => Navigator.pop(context, 'delete_order'),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 14),
+                  child: Row(children: [
+                    Icon(Icons.delete_outline, color: AppTheme.cancelled, size: 22),
+                    SizedBox(width: 14),
+                    Text('Delete Order', style: TextStyle(color: AppTheme.cancelled, fontWeight: FontWeight.w600, fontSize: 15, decoration: TextDecoration.none)),
+                  ]),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+Future<String?> _showItemActionsSheet(BuildContext context, {required bool alreadyCompleted}) {
+  return showModalBottomSheet<String>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    builder: (context) => Container(
+      decoration: const BoxDecoration(color: AppTheme.surface, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (!alreadyCompleted)
+                InkWell(
+                  onTap: () => Navigator.pop(context, 'completed'),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 14),
+                    child: Row(children: [
+                      Icon(Icons.check_circle_outline, color: AppTheme.completed, size: 22),
+                      SizedBox(width: 14),
+                      Text('Mark Complete', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600, fontSize: 15, decoration: TextDecoration.none)),
+                    ]),
+                  ),
+                ),
+              if (!alreadyCompleted) const Divider(height: 1, color: AppTheme.divider),
+              InkWell(
+                onTap: () => Navigator.pop(context, 'cancelled'),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 14),
+                  child: Row(children: [
+                    Icon(Icons.cancel_outlined, color: AppTheme.cancelled, size: 22),
+                    SizedBox(width: 14),
+                    Text('Cancel Item', style: TextStyle(color: AppTheme.cancelled, fontWeight: FontWeight.w600, fontSize: 15, decoration: TextDecoration.none)),
+                  ]),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 class _KotCard extends StatelessWidget {
   final _KotEntry entry;
   const _KotCard({required this.entry});
+
+  Future<void> _openActions(BuildContext context) async {
+    final kot = entry.kot;
+    final completed = kot.orderStatus.toLowerCase() == 'completed';
+    final action = await _showKotActionsSheet(context, alreadyCompleted: completed);
+    if (action == null || !context.mounted) return;
+
+    final kotProvider = context.read<KotProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+
+    if (action == 'complete') {
+      final ok = await kotProvider.updateKotStatus(id: kot.id, orderStatus: 'completed');
+      if (!ok && context.mounted) {
+        messenger.showSnackBar(SnackBar(content: Text(kotProvider.updateErrorMessage ?? 'Failed to update KOT')));
+      }
+    } else if (action == 'cancel') {
+      final confirmed = await confirmDelete(context, entityName: 'KOT');
+      if (!confirmed || !context.mounted) return;
+      final ok = await kotProvider.deleteKot(kot.id);
+      if (!ok && context.mounted) {
+        messenger.showSnackBar(SnackBar(content: Text(kotProvider.deleteErrorMessage ?? 'Failed to cancel KOT')));
+      }
+    } else if (action == 'delete_order') {
+      final confirmed = await confirmDelete(context, entityName: 'Order');
+      if (!confirmed || !context.mounted) return;
+      final orderProvider = context.read<OrderProvider>();
+      final ok = await orderProvider.deleteOrder(entry.order.id);
+      if (!ok && context.mounted) {
+        messenger.showSnackBar(SnackBar(content: Text(orderProvider.deleteOrderErrorMessage ?? 'Failed to delete order')));
+      }
+      return;
+    }
+
+    if (context.mounted) context.read<OrderProvider>().fetchOrders();
+  }
+
+  Future<void> _openItemActions(BuildContext context, OrderItem item) async {
+    final completed = item.dishStatus.toLowerCase() == 'completed';
+    final status = await _showItemActionsSheet(context, alreadyCompleted: completed);
+    if (status == null || !context.mounted) return;
+
+    final orderProvider = context.read<OrderProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await orderProvider.updateOrderItemDishStatus(itemId: item.id, dishStatus: status);
+    if (!ok && context.mounted) {
+      messenger.showSnackBar(SnackBar(content: Text(orderProvider.updateItemStatusErrorMessage ?? 'Failed to update item')));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -405,6 +560,14 @@ class _KotCard extends StatelessWidget {
                     style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.w600, decoration: TextDecoration.none),
                   ),
                 ),
+                InkWell(
+                  onTap: () => _openActions(context),
+                  borderRadius: BorderRadius.circular(8),
+                  child: const Padding(
+                    padding: EdgeInsets.only(left: 6),
+                    child: Icon(Icons.more_vert, color: AppTheme.textSecondary, size: 18),
+                  ),
+                ),
               ],
             ),
             if (kot.items.isNotEmpty) ...[
@@ -412,13 +575,25 @@ class _KotCard extends StatelessWidget {
               const Divider(height: 1, color: AppTheme.divider),
               const SizedBox(height: 10),
               for (final item in kot.items)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Row(
-                    children: [
-                      Expanded(child: Text(item.displayName, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13, decoration: TextDecoration.none))),
-                      Text('x${item.quantity}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
-                    ],
+                InkWell(
+                  onTap: () => _openItemActions(context, item),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            item.displayName,
+                            style: TextStyle(
+                              color: item.dishStatus.toLowerCase() == 'cancelled' ? AppTheme.textSecondary : AppTheme.textPrimary,
+                              fontSize: 13,
+                              decoration: item.dishStatus.toLowerCase() == 'cancelled' ? TextDecoration.lineThrough : TextDecoration.none,
+                            ),
+                          ),
+                        ),
+                        Text('x${item.quantity}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
+                      ],
+                    ),
                   ),
                 ),
             ],
@@ -446,6 +621,7 @@ class _TableListTabState extends State<TableListTab> {
     if (provider.status == LoadStatus.idle) {
       WidgetsBinding.instance.addPostFrameCallback((_) => provider.fetchTables());
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) => context.read<TableProvider>().fetchTableStats());
   }
 
   @override
@@ -462,8 +638,73 @@ class _TableListTabState extends State<TableListTab> {
           onRetry: () => context.read<TableProvider>().fetchTables(),
         );
       case LoadStatus.loaded:
-        return _TableGrid(tables: tableProvider.tables, onRefresh: () => context.read<TableProvider>().fetchTables());
+        return Column(
+          children: [
+            if (tableProvider.tableStatsStatus == LoadStatus.loaded && tableProvider.tableStats != null)
+              _TableStatsRow(stats: tableProvider.tableStats!),
+            Expanded(
+              child: _TableGrid(tables: tableProvider.tables, onRefresh: () => context.read<TableProvider>().fetchTables()),
+            ),
+          ],
+        );
     }
+  }
+}
+
+class _TableStatsRow extends StatelessWidget {
+  final TableStats stats;
+  const _TableStatsRow({required this.stats});
+
+  static String _rs(double v) => 'Rs ${v.toStringAsFixed(v == v.roundToDouble() ? 0 : 2)}';
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(child: _StatChip(title: 'Total Tables', value: '${stats.totalTables}')),
+              const SizedBox(width: 10),
+              Expanded(child: _StatChip(title: 'Active', value: '${stats.totalActiveTables}')),
+              const SizedBox(width: 10),
+              Expanded(child: _StatChip(title: 'Occupied', value: '${stats.totalOccupiedTables}')),
+            ],
+          ),
+          if (stats.mostUsedTableName != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Most Used: ${stats.mostUsedTableName} (${stats.mostUsedTableOrders ?? 0} orders, ${_rs(stats.mostUsedTableRevenue ?? 0)})',
+              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13, decoration: TextDecoration.none),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _StatChip extends StatelessWidget {
+  final String title;
+  final String value;
+  const _StatChip({required this.title, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(color: AppTheme.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppTheme.divider)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12, decoration: TextDecoration.none)),
+          const SizedBox(height: 4),
+          Text(value, style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 18, decoration: TextDecoration.none)),
+        ],
+      ),
+    );
   }
 }
 
@@ -486,6 +727,11 @@ class _TableGridState extends State<_TableGrid> {
     if (action == 'edit') {
       final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => AddTableScreen(editingTable: table)));
       if (result != null) widget.onRefresh();
+      return;
+    }
+
+    if (action == 'activity') {
+      await Navigator.push(context, MaterialPageRoute(builder: (context) => TableActivityScreen(table: table)));
       return;
     }
 

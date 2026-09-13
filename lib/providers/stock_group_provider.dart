@@ -103,4 +103,23 @@ class StockGroupProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  StockGroupStats? stockGroupStats;
+  LoadStatus stockGroupStatsStatus = LoadStatus.idle;
+  String? stockGroupStatsError;
+
+  Future<void> fetchStockGroupStats() async {
+    stockGroupStatsStatus = LoadStatus.loading;
+    stockGroupStatsError = null;
+    notifyListeners();
+
+    try {
+      stockGroupStats = await _repository.getStockGroupStats();
+      stockGroupStatsStatus = LoadStatus.loaded;
+    } on ApiException catch (e) {
+      stockGroupStatsError = e.message;
+      stockGroupStatsStatus = LoadStatus.error;
+    }
+    notifyListeners();
+  }
 }

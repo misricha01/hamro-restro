@@ -8,6 +8,10 @@ abstract class ExpenseCategoryRepository {
   Future<List<ExpenseCategory>> getExpenseCategories();
 
   Future<ExpenseCategory> createExpenseCategory({required String name, String? description});
+
+  Future<ExpenseCategory> updateExpenseCategory({required String id, required String name, String? description});
+
+  Future<void> deleteExpenseCategory(String id);
 }
 
 class ExpenseCategoryRepositoryImpl implements ExpenseCategoryRepository {
@@ -43,6 +47,34 @@ class ExpenseCategoryRepositoryImpl implements ExpenseCategoryRepository {
         ..sort((a, b) => (int.tryParse(b.id) ?? 0).compareTo(int.tryParse(a.id) ?? 0));
       if (matches.isNotEmpty) return matches.first;
       throw const ApiException('Expense category was created, but the list could not be refreshed.');
+    } on DioException catch (e) {
+      throw mapDioError(e);
+    }
+  }
+
+  @override
+  Future<ExpenseCategory> updateExpenseCategory({required String id, required String name, String? description}) async {
+    try {
+      final response = await _dio.patch(
+        '${ApiConstants.expenseCategories}/$id',
+        data: {'name': name, if (description != null && description.isNotEmpty) 'description': description},
+      );
+      final raw = response.data['data'];
+      if (raw is Map<String, dynamic> && raw['name'] != null) return ExpenseCategory.fromJson(raw);
+
+      final categories = await getExpenseCategories();
+      final match = categories.where((c) => c.id == id).toList();
+      if (match.isNotEmpty) return match.first;
+      throw const ApiException('Expense category was updated, but the list could not be refreshed.');
+    } on DioException catch (e) {
+      throw mapDioError(e);
+    }
+  }
+
+  @override
+  Future<void> deleteExpenseCategory(String id) async {
+    try {
+      await _dio.delete('${ApiConstants.expenseCategories}/$id');
     } on DioException catch (e) {
       throw mapDioError(e);
     }

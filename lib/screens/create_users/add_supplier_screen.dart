@@ -31,6 +31,8 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
   bool _isDirty = false;
   bool _nameError = false;
   bool _contactError = false;
+  bool _addressError = false;
+  bool _remarksError = false;
 
   @override
   void initState() {
@@ -66,22 +68,31 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
       _isDirty = false;
       _nameError = false;
       _contactError = false;
+      _addressError = false;
+      _remarksError = false;
     });
   }
 
   Future<void> _saveSupplier() async {
     final name = _nameController.text.trim();
     final phone = _contactController.text.trim();
+    final address = _addressController.text.trim();
+    final remarks = _remarksController.text.trim();
+    // The backend's CreateSupplierDto requires both `address` and
+    // `remarks` (confirmed live: submitting without them 400s with
+    // "address must be a string, address should not be empty, remarks
+    // must be a string, remarks should not be empty") even though this
+    // form used to treat them as optional.
     setState(() {
       _nameError = name.isEmpty;
       _contactError = phone.isEmpty;
+      _addressError = address.isEmpty;
+      _remarksError = remarks.isEmpty;
     });
-    if (_nameError || _contactError) return;
+    if (_nameError || _contactError || _addressError || _remarksError) return;
 
     final provider = context.read<SupplierProvider>();
     final messenger = ScaffoldMessenger.of(context);
-    final address = _addressController.text.trim().isEmpty ? null : _addressController.text.trim();
-    final remarks = _remarksController.text.trim().isEmpty ? null : _remarksController.text.trim();
 
     final supplier = widget.isEditing
         ? await provider.updateSupplier(id: widget.existingSupplier!.id, supplierName: name, phoneNumber: phone, address: address, remarks: remarks)
@@ -151,14 +162,30 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
           ),
           const SizedBox(height: 20),
 
-          const _FieldLabel(label: 'Address', required: false),
+          const _FieldLabel(label: 'Address', required: true),
           const SizedBox(height: 8),
-          _AppTextField(controller: _addressController, hint: "Enter Supplier's Address", onChanged: (_) => _markDirty()),
+          _AppTextField(
+            controller: _addressController,
+            hint: "Enter Supplier's Address",
+            errorText: _addressError ? 'Address is required' : null,
+            onChanged: (v) {
+              _markDirty();
+              if (_addressError && v.trim().isNotEmpty) setState(() => _addressError = false);
+            },
+          ),
           const SizedBox(height: 20),
 
-          const _FieldLabel(label: 'Remarks', required: false),
+          const _FieldLabel(label: 'Remarks', required: true),
           const SizedBox(height: 8),
-          _AppTextField(controller: _remarksController, hint: 'e.g. Regular supplier', onChanged: (_) => _markDirty()),
+          _AppTextField(
+            controller: _remarksController,
+            hint: 'e.g. Regular supplier',
+            errorText: _remarksError ? 'Remarks is required' : null,
+            onChanged: (v) {
+              _markDirty();
+              if (_remarksError && v.trim().isNotEmpty) setState(() => _remarksError = false);
+            },
+          ),
         ],
       ),
       bottomNavigationBar: Container(

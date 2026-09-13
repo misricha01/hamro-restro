@@ -86,6 +86,28 @@ class AreaProvider extends ChangeNotifier {
     }
   }
 
+  AreaStats? areaStats;
+  LoadStatus areaStatsStatus = LoadStatus.idle;
+  String? areaStatsError;
+
+  Future<void> fetchAreaStats() async {
+    areaStatsStatus = LoadStatus.loading;
+    areaStatsError = null;
+    notifyListeners();
+
+    try {
+      areaStats = await _repository.getAreaStats();
+      areaStatsStatus = LoadStatus.loaded;
+    } on ApiException catch (e) {
+      areaStatsError = e.message;
+      areaStatsStatus = LoadStatus.error;
+    } catch (_) {
+      areaStatsError = 'Something went wrong. Please try again.';
+      areaStatsStatus = LoadStatus.error;
+    }
+    notifyListeners();
+  }
+
   bool isDeleting = false;
   String? deleteErrorMessage;
 

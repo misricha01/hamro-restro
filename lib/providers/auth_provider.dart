@@ -5,6 +5,7 @@ import '../core/network/api_exception.dart';
 import '../core/storage/auth_storage.dart';
 import '../data/models/auth/logged_in_user.dart';
 import '../data/models/auth/login_request.dart';
+import '../data/models/auth/register_request.dart';
 import '../data/repositories/auth_repository.dart';
 
 enum AuthStatus { checking, authenticated, unauthenticated }
@@ -18,11 +19,12 @@ class AuthProvider extends ChangeNotifier {
   final AuthStorage _storage;
 
   AuthProvider({AuthRepository? repository, AuthStorage? storage})
-    : _repository = repository ?? AuthRepositoryImpl(),
-      _storage = storage ?? AuthStorage();
+      : _repository = repository ?? AuthRepositoryImpl(),
+        _storage = storage ?? AuthStorage();
 
   AuthStatus status = AuthStatus.checking;
   bool isLoggingIn = false;
+  bool isRegistering = false;
   bool isLoggingOut = false;
   String? errorMessage;
   LoggedInUser? currentUser;
@@ -65,6 +67,46 @@ class AuthProvider extends ChangeNotifier {
     } on ApiException catch (e) {
       errorMessage = e.message;
       isLoggingIn = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Register + auto-login, per Swagger's summary for this endpoint.
+  /// NOTE: `RegisterRequest`/`CreateUserDto` has no `restaurantId` -- a
+  /// successful call establishes a session but leaves the new account with
+  /// no restaurant attached. There is no follow-up flow wired for that yet
+  /// (e.g. "create your restaurant"), so the app gate will land wherever it
+  /// normally does for an authenticated-but-restaurant-less user -- this
+  /// hasn't been tested live.
+  Future<bool> register({
+    required String fullname,
+    required String email,
+    required String password,
+    required String position,
+  }) async {
+    isRegistering = true;
+    errorMessage = null;
+    notifyListeners();
+
+    try {
+      final result = await _repository.register(
+        RegisterRequest(fullname: fullname, email: email, password: password, position: position),
+      );
+      await _storage.saveSession(
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        userJson: jsonEncode(result.user.toJson()),
+      );
+      currentUser = result.user;
+      status = AuthStatus.authenticated;
+      isRegistering = false;
+      await ApiClient.setAuthToken(result.accessToken);
+      notifyListeners();
+      return true;
+    } on ApiException catch (e) {
+      errorMessage = e.message;
+      isRegistering = false;
       notifyListeners();
       return false;
     }

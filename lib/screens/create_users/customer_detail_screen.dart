@@ -12,11 +12,45 @@ import 'add_customer_screen.dart' show AddCustomerScreen;
 
 enum _CustomerMenuAction { edit, remove, help }
 
+String _rs(double v) => 'Rs ${v.toStringAsFixed(v == v.roundToDouble() ? 0 : 2)}';
+
+/// Converts one of [kAnalyticsDateFilterOptions] into a concrete
+/// `(startDate, endDate)` pair for the `finance-insight`/`spending-behaviour`
+/// query params, both `yyyy-MM-dd`. `null` means "no filter" (Life Time).
+/// "Custom Range" isn't implemented yet (no date-range picker in this app),
+/// so it falls back to Life Time.
+(String?, String?) _resolveDateRange(String label) {
+  String fmt(DateTime d) => '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  switch (label) {
+    case 'Today':
+      return (fmt(today), fmt(today));
+    case 'Yesterday':
+      final y = today.subtract(const Duration(days: 1));
+      return (fmt(y), fmt(y));
+    case 'This Week':
+      final start = today.subtract(Duration(days: today.weekday - 1));
+      return (fmt(start), fmt(today));
+    case 'This Month':
+      return (fmt(DateTime(today.year, today.month, 1)), fmt(today));
+    case 'Last Month':
+      final lastMonth = DateTime(today.year, today.month - 1, 1);
+      final lastDay = DateTime(today.year, today.month, 0);
+      return (fmt(lastMonth), fmt(lastDay));
+    case 'This Year':
+      return (fmt(DateTime(today.year, 1, 1)), fmt(today));
+    default: // 'Life Time', 'Custom Range' (not implemented — falls back)
+      return (null, null);
+  }
+}
+
 /// Customer profile screen reached by tapping a row in [CustomerListScreen].
 /// Deletion calls [CustomerProvider.deleteCustomer] (`DELETE
 /// /api/customers/{id}`) directly rather than a passed-in callback.
-/// Transactions/Invoice/Credit List tabs stay static placeholders — no
-/// backend endpoint confirmed for those yet. The Comments tab is backed by
+/// Transactions/Dining Insight/Spending tabs are backed by
+/// `GET /api/customers/{id}/finance-insight`, `/dining-insight`, and
+/// `/spending-behaviour` respectively. The Comments tab is backed by
 /// [CustomerCommentProvider] (`/api/customer-comments`) — the nested
 /// `customer.comments` from the detail response isn't reliable (unconfirmed
 /// on GET), so this always fetches via the dedicated endpoint instead.
@@ -38,7 +72,11 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
   void initState() {
     super.initState();
     final commentProvider = context.read<CustomerCommentProvider>();
-    WidgetsBinding.instance.addPostFrameCallback((_) => commentProvider.fetchComments(_customer.id));
+    final customerProvider = context.read<CustomerProvider>();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      commentProvider.fetchComments(_customer.id);
+      customerProvider.fetchDiningInsight(_customer.id);
+    });
   }
 
   Future<void> _edit() async {
@@ -164,9 +202,9 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                     onPaymentIn: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentEntryScreen(isPaymentIn: true))),
                     onPaymentOut: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentEntryScreen(isPaymentIn: false))),
                   ),
-                  const InvoiceEmptyState(entityName: 'Transactions'),
-                  const InvoiceEmptyState(entityName: 'Invoice'),
-                  const _CreditListTab(),
+                  _TransactionsTab(customerId: _customer.id),
+                  _DiningInsightTab(customerId: _customer.id),
+                  _SpendingTab(customerId: _customer.id),
                   _CommentsTab(customerId: _customer.id),
                 ],
               ),
@@ -202,7 +240,7 @@ class _DetailTabRow extends StatelessWidget {
   final ValueChanged<int> onChanged;
   const _DetailTabRow({required this.index, required this.onChanged});
 
-  static const _labels = ['Profile', 'Transactions', 'Invoice', 'Credit List', 'Comments'];
+  static const _labels = ['Profile', 'Transactions', 'Dining Insight', 'Spending', 'Comments'];
 
   @override
   Widget build(BuildContext context) {
@@ -237,18 +275,34 @@ class _DetailTabRow extends StatelessWidget {
   }
 }
 
-class _CreditListTab extends StatefulWidget {
-  const _CreditListTab();
+/// `GET /api/customers/{id}/finance-insight` — a money-movement summary
+/// (sales, returns, payments in/out) for this customer, filterable by the
+/// same date-range presets used elsewhere in Analytics.
+class _TransactionsTab extends StatefulWidget {
+  final String customerId;
+  const _TransactionsTab({required this.customerId});
 
   @override
-  State<_CreditListTab> createState() => _CreditListTabState();
+  State<_TransactionsTab> createState() => _TransactionsTabState();
 }
 
-class _CreditListTabState extends State<_CreditListTab> {
+class _TransactionsTabState extends State<_TransactionsTab> {
   String _dateFilter = 'Life Time';
+
+  void _fetch() {
+    final (start, end) = _resolveDateRange(_dateFilter);
+    context.read<CustomerProvider>().fetchFinanceInsight(widget.customerId, startDate: start, endDate: end);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _fetch());
+  }
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<CustomerProvider>();
     return Column(
       children: [
         Padding(
@@ -258,13 +312,212 @@ class _CreditListTabState extends State<_CreditListTab> {
               AnalyticsFilterDropdown(
                 label: _dateFilter,
                 options: kAnalyticsDateFilterOptions,
-                onSelected: (v) => setState(() => _dateFilter = v),
+                onSelected: (v) {
+                  setState(() => _dateFilter = v);
+                  _fetch();
+                },
               ),
             ],
           ),
         ),
-        const Expanded(child: InvoiceEmptyState(entityName: 'Credit List')),
+        Expanded(child: _buildBody(provider)),
       ],
+    );
+  }
+
+  Widget _buildBody(CustomerProvider provider) {
+    switch (provider.financeInsightStatus) {
+      case LoadStatus.idle:
+      case LoadStatus.loading:
+        return const Center(child: CircularProgressIndicator(color: AppTheme.accent));
+      case LoadStatus.error:
+        return _ErrorRetry(message: provider.financeInsightError, onRetry: _fetch);
+      case LoadStatus.loaded:
+        final insight = provider.financeInsight;
+        if (insight == null) return const InvoiceEmptyState(entityName: 'Transactions');
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          children: [
+            AnalyticsLegendCard(
+              title: 'Finance Summary',
+              rows: [
+                AnalyticsLegendRowData(color: AppTheme.completed, label: 'Total Sales', value: _rs(insight.totalSales)),
+                AnalyticsLegendRowData(color: AppTheme.cancelled, label: 'Total Return', value: _rs(insight.totalReturn)),
+                AnalyticsLegendRowData(color: AppTheme.accent, label: 'Total Payment In', value: _rs(insight.totalPaymentIn)),
+                AnalyticsLegendRowData(color: AppTheme.textSecondary, label: 'Total Payment Out', value: _rs(insight.totalPaymentOut)),
+              ],
+            ),
+          ],
+        );
+    }
+  }
+}
+
+/// `GET /api/customers/{id}/dining-insight` — dining preferences/patterns
+/// (no date-range filter on this endpoint).
+class _DiningInsightTab extends StatelessWidget {
+  final String customerId;
+  const _DiningInsightTab({required this.customerId});
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<CustomerProvider>();
+    switch (provider.diningInsightStatus) {
+      case LoadStatus.idle:
+      case LoadStatus.loading:
+        return const Center(child: CircularProgressIndicator(color: AppTheme.accent));
+      case LoadStatus.error:
+        return _ErrorRetry(message: provider.diningInsightError, onRetry: () => provider.fetchDiningInsight(customerId));
+      case LoadStatus.loaded:
+        final insight = provider.diningInsight;
+        if (insight == null || insight.isEmpty) return const InvoiceEmptyState(entityName: 'Dining Insight');
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          children: [
+            AnalyticsLegendCard(
+              title: 'Dining Insight',
+              rows: [
+                AnalyticsLegendRowData(label: 'Frequent Dish', value: insight.frequentDish ?? '—'),
+                AnalyticsLegendRowData(label: 'Frequent Table', value: insight.frequentTable ?? '—'),
+                AnalyticsLegendRowData(label: 'Most Visited Time', value: insight.mostVisitedTime ?? '—'),
+                AnalyticsLegendRowData(label: 'Last Visit', value: insight.lastVisit ?? '—'),
+              ],
+            ),
+          ],
+        );
+    }
+  }
+}
+
+/// `GET /api/customers/{id}/spending-behaviour` — spend totals plus a list
+/// of individual spend entries, filterable by the same date-range presets.
+class _SpendingTab extends StatefulWidget {
+  final String customerId;
+  const _SpendingTab({required this.customerId});
+
+  @override
+  State<_SpendingTab> createState() => _SpendingTabState();
+}
+
+class _SpendingTabState extends State<_SpendingTab> {
+  String _dateFilter = 'Life Time';
+
+  void _fetch() {
+    final (start, end) = _resolveDateRange(_dateFilter);
+    context.read<CustomerProvider>().fetchSpendingBehaviour(widget.customerId, startDate: start, endDate: end);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _fetch());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<CustomerProvider>();
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: Row(
+            children: [
+              AnalyticsFilterDropdown(
+                label: _dateFilter,
+                options: kAnalyticsDateFilterOptions,
+                onSelected: (v) {
+                  setState(() => _dateFilter = v);
+                  _fetch();
+                },
+              ),
+            ],
+          ),
+        ),
+        Expanded(child: _buildBody(provider)),
+      ],
+    );
+  }
+
+  Widget _buildBody(CustomerProvider provider) {
+    switch (provider.spendingBehaviourStatus) {
+      case LoadStatus.idle:
+      case LoadStatus.loading:
+        return const Center(child: CircularProgressIndicator(color: AppTheme.accent));
+      case LoadStatus.error:
+        return _ErrorRetry(message: provider.spendingBehaviourError, onRetry: _fetch);
+      case LoadStatus.loaded:
+        final behaviour = provider.spendingBehaviour;
+        if (behaviour == null) return const InvoiceEmptyState(entityName: 'Spending');
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          children: [
+            AnalyticsLegendCard(
+              title: 'Spending Summary',
+              rows: [
+                AnalyticsLegendRowData(label: 'Total Spent', value: _rs(behaviour.totalSpent)),
+                AnalyticsLegendRowData(label: 'Total Visits', value: '${behaviour.totalVisit}'),
+                AnalyticsLegendRowData(label: 'Average Spend / Visit', value: _rs(behaviour.averageSpendPerVisit)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (behaviour.spends.isEmpty)
+              const AnalyticsEmptyListCard(title: 'Spend History', emptyLabel: 'No spend records for this period')
+            else
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                decoration: BoxDecoration(color: AppTheme.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppTheme.divider)),
+                child: Column(
+                  children: [
+                    for (int i = 0; i < behaviour.spends.length; i++)
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(border: i == behaviour.spends.length - 1 ? null : const Border(bottom: BorderSide(color: AppTheme.divider))),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                behaviour.spends[i].description ?? behaviour.spends[i].date ?? 'Spend record',
+                                style: const TextStyle(color: AppTheme.textPrimary, decoration: TextDecoration.none),
+                              ),
+                            ),
+                            Text(_rs(behaviour.spends[i].amount), style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+          ],
+        );
+    }
+  }
+}
+
+class _ErrorRetry extends StatelessWidget {
+  final String? message;
+  final VoidCallback onRetry;
+  const _ErrorRetry({this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.cloud_off_outlined, size: 48, color: AppTheme.textSecondary),
+            const SizedBox(height: 12),
+            Text(message ?? 'Something went wrong.', textAlign: TextAlign.center, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14, decoration: TextDecoration.none)),
+            const SizedBox(height: 16),
+            OutlinedButton(
+              onPressed: onRetry,
+              style: OutlinedButton.styleFrom(side: const BorderSide(color: AppTheme.accent)),
+              child: const Text('Retry', style: TextStyle(color: AppTheme.accent, decoration: TextDecoration.none)),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

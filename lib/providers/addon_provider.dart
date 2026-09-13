@@ -18,6 +18,22 @@ class AddOnProvider extends ChangeNotifier {
   bool isCreating = false;
   String? createErrorMessage;
 
+  AddOnStats? addOnStats;
+  LoadStatus addOnStatsStatus = LoadStatus.idle;
+
+  Future<void> fetchAddOnStats() async {
+    addOnStatsStatus = LoadStatus.loading;
+    notifyListeners();
+
+    try {
+      addOnStats = await _repository.getAddOnStats();
+      addOnStatsStatus = LoadStatus.loaded;
+    } catch (_) {
+      addOnStatsStatus = LoadStatus.error;
+    }
+    notifyListeners();
+  }
+
   Future<void> fetchAddOns() async {
     status = LoadStatus.loading;
     errorMessage = null;
@@ -35,13 +51,13 @@ class AddOnProvider extends ChangeNotifier {
 
   /// Creates an add-on and appends it to [addons] on success. Returns the
   /// created [AddOn], or `null` if the call failed (see [createErrorMessage]).
-  Future<AddOn?> createAddOn({required String addonName, required double price}) async {
+  Future<AddOn?> createAddOn({required String addonName, required double price, required double cogs}) async {
     isCreating = true;
     createErrorMessage = null;
     notifyListeners();
 
     try {
-      final addon = await _repository.createAddOn(addonName: addonName, price: price);
+      final addon = await _repository.createAddOn(addonName: addonName, price: price, cogs: cogs);
       addons = [...addons, addon];
       return addon;
     } on ApiException catch (e) {
@@ -61,13 +77,13 @@ class AddOnProvider extends ChangeNotifier {
 
   /// Updates an add-on and replaces it in [addons] on success. Returns the
   /// updated [AddOn], or `null` if the call failed (see [updateErrorMessage]).
-  Future<AddOn?> updateAddOn({required String id, required String addonName, required double price}) async {
+  Future<AddOn?> updateAddOn({required String id, required String addonName, required double price, required double cogs}) async {
     isUpdating = true;
     updateErrorMessage = null;
     notifyListeners();
 
     try {
-      final addon = await _repository.updateAddOn(id: id, addonName: addonName, price: price);
+      final addon = await _repository.updateAddOn(id: id, addonName: addonName, price: price, cogs: cogs);
       addons = addons.map((a) => a.id == id ? addon : a).toList();
       return addon;
     } on ApiException catch (e) {

@@ -10,6 +10,8 @@ import '../create_users/invite_staff_screen.dart';
 import '../manage/add_table_screen.dart';
 import '../manage/create_space_screen.dart';
 import '../manage/manage_screen.dart';
+import '../manage/my_profile_screen.dart';
+import '../manage/my_profile_screen.dart';
 import '../manage/restaurant_setting_screen.dart';
 import 'faq_list_screen.dart';
 
@@ -146,31 +148,34 @@ class _UserChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final name = user?.fullname.isNotEmpty == true ? user!.fullname : 'Account';
-    return Container(
-      padding: const EdgeInsets.fromLTRB(6, 6, 12, 6),
-      decoration: BoxDecoration(
-        border: Border.all(color: AppTheme.divider),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 28,
-            height: 28,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(color: AppTheme.card, borderRadius: BorderRadius.circular(6)),
-            child: Text(
-              _initials(name),
-              style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 11, decoration: TextDecoration.none),
+    return GestureDetector(
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MyProfileScreen())),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(6, 6, 12, 6),
+        decoration: BoxDecoration(
+          border: Border.all(color: AppTheme.divider),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 28,
+              height: 28,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(color: AppTheme.card, borderRadius: BorderRadius.circular(6)),
+              child: Text(
+                _initials(name),
+                style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 11, decoration: TextDecoration.none),
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            name,
-            style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600, fontSize: 13, decoration: TextDecoration.none),
-          ),
-        ],
+            const SizedBox(width: 8),
+            Text(
+              name,
+              style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600, fontSize: 13, decoration: TextDecoration.none),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -18,6 +18,22 @@ class DishTypeProvider extends ChangeNotifier {
   bool isCreating = false;
   String? createErrorMessage;
 
+  DishTypeCounts? dishTypeCounts;
+  LoadStatus dishTypeCountsStatus = LoadStatus.idle;
+
+  Future<void> fetchDishTypeCounts() async {
+    dishTypeCountsStatus = LoadStatus.loading;
+    notifyListeners();
+
+    try {
+      dishTypeCounts = await _repository.getDishTypeCounts();
+      dishTypeCountsStatus = LoadStatus.loaded;
+    } catch (_) {
+      dishTypeCountsStatus = LoadStatus.error;
+    }
+    notifyListeners();
+  }
+
   Future<void> fetchDishTypes() async {
     status = LoadStatus.loading;
     errorMessage = null;

@@ -4,6 +4,31 @@ import '../../core/network/dio_client.dart';
 import '../../core/network/api_exception.dart';
 import '../models/stock/stock_group_model.dart';
 
+class StockGroupStats {
+  final int totalGroupStock;
+  final double? highestStockValue;
+  final String? groupWithMostItemName;
+
+  StockGroupStats({required this.totalGroupStock, this.highestStockValue, this.groupWithMostItemName});
+
+  factory StockGroupStats.fromJson(Map<String, dynamic> json) {
+    final rawGroup = json['groupWithMostItem'];
+    String? groupName;
+    if (rawGroup is String) {
+      groupName = rawGroup;
+    } else if (rawGroup is Map) {
+      final name = rawGroup['groupName'] ?? rawGroup['name'];
+      if (name is String) groupName = name;
+    }
+
+    return StockGroupStats(
+      totalGroupStock: (json['totalGroupStock'] as num?)?.toInt() ?? 0,
+      highestStockValue: (json['highestStockValue'] as num?)?.toDouble(),
+      groupWithMostItemName: groupName,
+    );
+  }
+}
+
 abstract class StockGroupRepository {
   Future<List<StockGroup>> getStockGroups();
 
@@ -12,6 +37,8 @@ abstract class StockGroupRepository {
   Future<StockGroup> updateStockGroup({required String id, required String groupName, String? groupDescription});
 
   Future<void> deleteStockGroup(String id);
+
+  Future<StockGroupStats> getStockGroupStats();
 }
 
 class StockGroupRepositoryImpl implements StockGroupRepository {
@@ -73,6 +100,17 @@ class StockGroupRepositoryImpl implements StockGroupRepository {
   Future<void> deleteStockGroup(String id) async {
     try {
       await _dio.delete('${ApiConstants.stockGroups}/$id');
+    } on DioException catch (e) {
+      throw mapDioError(e);
+    }
+  }
+
+  @override
+  Future<StockGroupStats> getStockGroupStats() async {
+    try {
+      final response = await _dio.get('${ApiConstants.stockGroups}/stats');
+      final data = response.data['data'] as Map<String, dynamic>? ?? {};
+      return StockGroupStats.fromJson(data);
     } on DioException catch (e) {
       throw mapDioError(e);
     }

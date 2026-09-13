@@ -109,4 +109,23 @@ class CategoryProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  CategoryStats? categoryStats;
+  LoadStatus categoryStatsStatus = LoadStatus.idle;
+  String? categoryStatsError;
+
+  Future<void> fetchCategoryStats() async {
+    categoryStatsStatus = LoadStatus.loading;
+    categoryStatsError = null;
+    notifyListeners();
+
+    try {
+      categoryStats = await _repository.getCategoryStats();
+      categoryStatsStatus = LoadStatus.loaded;
+    } on ApiException catch (e) {
+      categoryStatsError = e.message;
+      categoryStatsStatus = LoadStatus.error;
+    }
+    notifyListeners();
+  }
 }

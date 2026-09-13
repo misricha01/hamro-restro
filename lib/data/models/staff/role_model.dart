@@ -8,7 +8,12 @@ class Role {
   const Role({required this.id, required this.name});
 
   factory Role.fromJson(Map<String, dynamic> json) {
-    return Role(id: json['id'].toString(), name: json['name'] as String? ?? '');
+    // `GET /api/roles` never returns an `id` field — confirmed live, the
+    // response is only `{restaurantId, name}`. This resource is keyed by
+    // `name` (also what `PATCH`/`DELETE /api/roles/{id}` actually expect),
+    // so use it as the identifier instead of the nonexistent `id`.
+    final name = json['name'] as String? ?? '';
+    return Role(id: name, name: name);
   }
 }
 

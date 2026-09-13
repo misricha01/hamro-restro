@@ -30,6 +30,25 @@ class TypeOfMenuProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  TypeOfMenuStats? typeOfMenuStats;
+  LoadStatus typeOfMenuStatsStatus = LoadStatus.idle;
+  String? typeOfMenuStatsError;
+
+  Future<void> fetchTypeOfMenuStats() async {
+    typeOfMenuStatsStatus = LoadStatus.loading;
+    typeOfMenuStatsError = null;
+    notifyListeners();
+
+    try {
+      typeOfMenuStats = await _repository.getTypeOfMenuStats();
+      typeOfMenuStatsStatus = LoadStatus.loaded;
+    } on ApiException catch (e) {
+      typeOfMenuStatsError = e.message;
+      typeOfMenuStatsStatus = LoadStatus.error;
+    }
+    notifyListeners();
+  }
+
   bool isCreating = false;
   String? createErrorMessage;
 

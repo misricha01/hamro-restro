@@ -32,6 +32,9 @@ class _ManageSpaceScreenState extends State<ManageSpaceScreen> {
     if (provider.status == LoadStatus.idle) {
       WidgetsBinding.instance.addPostFrameCallback((_) => provider.fetchAreas());
     }
+    if (provider.areaStatsStatus == LoadStatus.idle) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => provider.fetchAreaStats());
+    }
   }
 
   List<Area> _filtered(List<Area> areas) {
@@ -121,9 +124,27 @@ class _ManageSpaceScreenState extends State<ManageSpaceScreen> {
             if (areaProvider.status == LoadStatus.loaded && areaProvider.areas.isNotEmpty) ...[
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Text(
-                  'Total Space : ${areaProvider.areas.length}',
-                  style: const TextStyle(fontSize: 15, color: AppTheme.textSecondary, decoration: TextDecoration.none),
+                child: Column(
+                  children: [
+                    Text(
+                      'Total Space : ${areaProvider.areas.length}',
+                      style: const TextStyle(fontSize: 15, color: AppTheme.textSecondary, decoration: TextDecoration.none),
+                    ),
+                    if (areaProvider.areaStatsStatus == LoadStatus.loaded && areaProvider.areaStats != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Spaces with Tables : ${areaProvider.areaStats!.noOfSpacesWithTables}',
+                        style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary, decoration: TextDecoration.none),
+                      ),
+                      if (areaProvider.areaStats!.mostOccupiedSpaceName != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Most Occupied : ${areaProvider.areaStats!.mostOccupiedSpaceName}',
+                          style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary, decoration: TextDecoration.none),
+                        ),
+                      ],
+                    ],
+                  ],
                 ),
               ),
               Padding(

@@ -7,6 +7,7 @@ class ApiConstants {
   static const String logout = '/api/auth/logout';
 
   static const String orders = '/api/order';
+  static const String kot = '/api/kot';
   static const String tables = '/api/table';
   static const String areas = '/api/area';
   static const String menuCategories = '/api/menu-category';
@@ -25,6 +26,7 @@ class ApiConstants {
   static const String stockGroups = '/api/stock-group';
   static const String stocks = '/api/stock';
   static const String staff = '/api/user';
+  static const String myProfile = '/api/user/profile';
   static const String createStaffAccount = '/api/restaurant/create-account';
   static const String roles = '/api/roles';
   static const String rbacAssignRole = '/api/rbac/assign-role';
@@ -51,8 +53,11 @@ class ApiConstants {
   static const String supplierTransactions = '/api/supplier-transaction';
   static const String media = '/api/media';
   static const String checkout = '/api/checkout';
+  static const String checkoutHistory = '/api/checkout-history';
   static const String moveTable = '/api/table-order/move-table';
   static const String mergeTable = '/api/table-order/merge-table';
+  static const String tableOrder = '/api/table-order';
+  static const String tableActivity = '/api/table-activity';
 
   static const Duration connectTimeout = Duration(seconds: 15);
   static const Duration receiveTimeout = Duration(seconds: 15);

@@ -3,9 +3,16 @@ import '../../core/network/api_constants.dart';
 import '../../core/network/dio_client.dart';
 import '../../core/network/api_exception.dart';
 import '../models/customer/customer_model.dart';
+import '../models/customer/customer_insight_model.dart';
 
 abstract class CustomerRepository {
   Future<List<Customer>> getCustomers();
+
+  Future<CustomerDiningInsight> getDiningInsight(String customerId);
+
+  Future<CustomerFinanceInsight> getFinanceInsight(String customerId, {String? startDate, String? endDate});
+
+  Future<CustomerSpendingBehaviour> getSpendingBehaviour(String customerId, {String? startDate, String? endDate});
 
   Future<Customer> createCustomer({
     required String customerName,
@@ -205,6 +212,42 @@ class CustomerRepositoryImpl implements CustomerRepository {
   Future<void> deleteCustomer(String id) async {
     try {
       await _dio.delete('${ApiConstants.customers}/$id');
+    } on DioException catch (e) {
+      throw mapDioError(e);
+    }
+  }
+
+  @override
+  Future<CustomerDiningInsight> getDiningInsight(String customerId) async {
+    try {
+      final response = await _dio.get('${ApiConstants.customers}/$customerId/dining-insight');
+      return CustomerDiningInsight.fromJson(response.data['data'] as Map<String, dynamic>? ?? {});
+    } on DioException catch (e) {
+      throw mapDioError(e);
+    }
+  }
+
+  @override
+  Future<CustomerFinanceInsight> getFinanceInsight(String customerId, {String? startDate, String? endDate}) async {
+    try {
+      final response = await _dio.get(
+        '${ApiConstants.customers}/$customerId/finance-insight',
+        queryParameters: {if (startDate != null) 'startDate': startDate, if (endDate != null) 'endDate': endDate},
+      );
+      return CustomerFinanceInsight.fromJson(response.data['data'] as Map<String, dynamic>? ?? {});
+    } on DioException catch (e) {
+      throw mapDioError(e);
+    }
+  }
+
+  @override
+  Future<CustomerSpendingBehaviour> getSpendingBehaviour(String customerId, {String? startDate, String? endDate}) async {
+    try {
+      final response = await _dio.get(
+        '${ApiConstants.customers}/$customerId/spending-behaviour',
+        queryParameters: {if (startDate != null) 'startDate': startDate, if (endDate != null) 'endDate': endDate},
+      );
+      return CustomerSpendingBehaviour.fromJson(response.data['data'] as Map<String, dynamic>? ?? {});
     } on DioException catch (e) {
       throw mapDioError(e);
     }

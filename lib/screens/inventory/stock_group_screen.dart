@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/stock/stock_group_model.dart';
+import '../../data/repositories/stock_group_repository.dart' show StockGroupStats;
 import '../../providers/stock_group_provider.dart';
 import '../../providers/stock_provider.dart';
 import '../../providers/order_provider.dart' show LoadStatus;
@@ -30,6 +31,7 @@ class _StockGroupScreenState extends State<StockGroupScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (groupProvider.status == LoadStatus.idle) groupProvider.fetchStockGroups();
       if (stockProvider.status == LoadStatus.idle) stockProvider.fetchStocks();
+      if (groupProvider.stockGroupStatsStatus == LoadStatus.idle) groupProvider.fetchStockGroupStats();
     });
   }
 
@@ -65,6 +67,8 @@ class _StockGroupScreenState extends State<StockGroupScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            if (groupProvider.stockGroupStatsStatus == LoadStatus.loaded && groupProvider.stockGroupStats != null)
+              _StatsSummary(stats: groupProvider.stockGroupStats!),
             const ReportParticularsHeader(leftLabel: 'Group Name', rightLabel: 'No of Item'),
             Expanded(child: _buildBody(groupProvider)),
           ],
@@ -120,6 +124,28 @@ class _StockGroupScreenState extends State<StockGroupScreen> {
           ),
         );
     }
+  }
+}
+
+class _StatsSummary extends StatelessWidget {
+  final StockGroupStats stats;
+  const _StatsSummary({required this.stats});
+
+  @override
+  Widget build(BuildContext context) {
+    final parts = <String>['Total Stock: ${stats.totalGroupStock}'];
+    if (stats.highestStockValue != null) parts.add('Highest Value: Rs ${stats.highestStockValue}');
+    if (stats.groupWithMostItemName != null) parts.add('Most Items: ${stats.groupWithMostItemName}');
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      color: AppTheme.surface,
+      child: Text(
+        parts.join('   |   '),
+        style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12.5, decoration: TextDecoration.none),
+      ),
+    );
   }
 }
 

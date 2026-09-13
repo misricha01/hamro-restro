@@ -689,6 +689,9 @@ class _SelectDishTypeSheetState extends State<SelectDishTypeSheet> {
     if (provider.status == LoadStatus.idle) {
       WidgetsBinding.instance.addPostFrameCallback((_) => provider.fetchDishTypes());
     }
+    if (provider.dishTypeCountsStatus == LoadStatus.idle) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => provider.fetchDishTypeCounts());
+    }
   }
 
   Future<void> _addDishType() async {
@@ -777,6 +780,13 @@ class _SelectDishTypeSheetState extends State<SelectDishTypeSheet> {
                         ),
                       ],
                     ),
+                    if (dishTypeProvider.dishTypeCountsStatus == LoadStatus.loaded && dishTypeProvider.dishTypeCounts != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        '${dishTypeProvider.dishTypeCounts!.total} total · ${dishTypeProvider.dishTypeCounts!.active} active',
+                        style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12.5, decoration: TextDecoration.none),
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     Expanded(child: _buildBody(dishTypeProvider, scrollController)),
                   ],
@@ -1167,6 +1177,9 @@ class _SelectAddOnsSheetState extends State<SelectAddOnsSheet> {
     if (provider.status == LoadStatus.idle) {
       WidgetsBinding.instance.addPostFrameCallback((_) => provider.fetchAddOns());
     }
+    if (provider.addOnStatsStatus == LoadStatus.idle) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => provider.fetchAddOnStats());
+    }
   }
 
   List<AddOn> _filtered(List<AddOn> addons) {
@@ -1302,6 +1315,13 @@ class _SelectAddOnsSheetState extends State<SelectAddOnsSheet> {
                         decoration: TextDecoration.none,
                       ),
                     ),
+                    if (addOnProvider.addOnStatsStatus == LoadStatus.loaded && addOnProvider.addOnStats?.mostUsedName != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Most used: ${addOnProvider.addOnStats!.mostUsedName}',
+                        style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12.5, decoration: TextDecoration.none),
+                      ),
+                    ],
                     const SizedBox(height: 10),
                     Expanded(child: _buildBody(addOnProvider, scrollController)),
                     const SizedBox(height: 8),

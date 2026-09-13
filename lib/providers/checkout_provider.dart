@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../core/network/api_exception.dart';
 import '../data/models/checkout/checkout_model.dart';
+import '../data/repositories/checkout_history_repository.dart';
 import '../data/repositories/checkout_repository.dart';
 
 /// ViewModel for the Checkout / Bill Settlement screen — generates a bill
@@ -8,8 +10,11 @@ import '../data/repositories/checkout_repository.dart';
 /// split (`PATCH /api/checkout/{id}`).
 class CheckoutProvider extends ChangeNotifier {
   final CheckoutRepository _repository;
+  final CheckoutHistoryRepository _historyRepository;
 
-  CheckoutProvider({required CheckoutRepository repository}) : _repository = repository;
+  CheckoutProvider({required CheckoutRepository repository, required CheckoutHistoryRepository historyRepository})
+      : _repository = repository,
+        _historyRepository = historyRepository;
 
   bool isGenerating = false;
   String? generateErrorMessage;
@@ -55,7 +60,7 @@ class CheckoutProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      return await _repository.completeCheckout(
+      final result = await _repository.completeCheckout(
         id: id,
         checkoutStatus: checkoutStatus,
         noOfGuests: noOfGuests,
@@ -64,6 +69,10 @@ class CheckoutProvider extends ChangeNotifier {
         companyPan: companyPan,
         payments: payments,
       );
+      // Best-effort audit-trail log — nothing meaningful to surface if this
+      // fails, the checkout itself already completed successfully.
+      unawaited(_historyRepository.createEntry(id).catchError((_) {}));
+      return result;
     } on ApiException catch (e) {
       completeErrorMessage = e.message;
       return null;

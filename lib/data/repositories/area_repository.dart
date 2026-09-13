@@ -4,6 +4,23 @@ import '../../core/network/dio_client.dart';
 import '../../core/network/api_exception.dart';
 import '../models/area/area_model.dart';
 
+class AreaStats {
+  final int totalArea;
+  final String? mostOccupiedSpaceName;
+  final int noOfSpacesWithTables;
+
+  const AreaStats({required this.totalArea, this.mostOccupiedSpaceName, required this.noOfSpacesWithTables});
+
+  factory AreaStats.fromJson(Map<String, dynamic> json) {
+    final mostOccupiedSpace = json['mostOccupiedSpace'];
+    return AreaStats(
+      totalArea: (json['totalArea'] as num?)?.toInt() ?? 0,
+      mostOccupiedSpaceName: mostOccupiedSpace is Map<String, dynamic> ? mostOccupiedSpace['name'] as String? : null,
+      noOfSpacesWithTables: (json['noOfSpacesWithTables'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
 abstract class AreaRepository {
   Future<List<Area>> getAreas();
 
@@ -12,6 +29,8 @@ abstract class AreaRepository {
   Future<Area> updateArea({required String id, required String areaName, String? description});
 
   Future<void> deleteArea(String id);
+
+  Future<AreaStats> getAreaStats();
 }
 
 class AreaRepositoryImpl implements AreaRepository {
@@ -78,6 +97,17 @@ class AreaRepositoryImpl implements AreaRepository {
   Future<void> deleteArea(String id) async {
     try {
       await _dio.delete('${ApiConstants.areas}/$id');
+    } on DioException catch (e) {
+      throw mapDioError(e);
+    }
+  }
+
+  @override
+  Future<AreaStats> getAreaStats() async {
+    try {
+      final response = await _dio.get('${ApiConstants.areas}/stats');
+      final data = response.data['data'] as Map<String, dynamic>? ?? {};
+      return AreaStats.fromJson(data);
     } on DioException catch (e) {
       throw mapDioError(e);
     }

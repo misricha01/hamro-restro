@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/dish/dish_model.dart';
+import '../../data/repositories/dish_repository.dart' show DishStats, DishTransaction;
 import '../../providers/dish_provider.dart';
 import '../../providers/order_provider.dart' show LoadStatus;
+import '../../widgets/common/analytics_cards.dart';
 import '../create_dish/add_dish_screen.dart' show AddDishScreen;
 
 /// Dishes list for the Manage screen, backed by [DishProvider]
@@ -24,6 +26,9 @@ class _ManageDishesScreenState extends State<ManageDishesScreen> {
     final provider = context.read<DishProvider>();
     if (provider.status == LoadStatus.idle) {
       WidgetsBinding.instance.addPostFrameCallback((_) => provider.fetchDishes());
+    }
+    if (provider.dishStatsStatus == LoadStatus.idle) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => provider.fetchDishStats());
     }
   }
 
@@ -71,7 +76,30 @@ class _ManageDishesScreenState extends State<ManageDishesScreen> {
           ),
         ],
       ),
-      body: SafeArea(child: _buildBody(dishProvider)),
+      body: SafeArea(
+        child: Column(
+          children: [
+            if (dishProvider.dishStatsStatus == LoadStatus.loaded && dishProvider.dishStats != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                child: _dishStatsCard(dishProvider.dishStats!),
+              ),
+            Expanded(child: _buildBody(dishProvider)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _dishStatsCard(DishStats stats) {
+    return AnalyticsLegendCard(
+      title: 'Dish Stats',
+      rows: [
+        AnalyticsLegendRowData(label: 'Active Dishes', value: '${stats.activeDish}/${stats.totalDish}'),
+        if (stats.topSoldName != null)
+          AnalyticsLegendRowData(label: 'Top Sold', value: '${stats.topSoldName} (${stats.topSoldOrders ?? 0} orders)'),
+        if (stats.topDishTypeName != null) AnalyticsLegendRowData(label: 'Top Type', value: stats.topDishTypeName!),
+      ],
     );
   }
 
@@ -250,6 +278,15 @@ class _DishManageCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 GestureDetector(
+                  onTap: () => DishTransactionsSheet.show(context, dish: dish),
+                  child: Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(color: AppTheme.surface, borderRadius: BorderRadius.circular(8)),
+                    child: const Icon(Icons.receipt_long_outlined, size: 16, color: AppTheme.textPrimary),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
                   onTap: () => _delete(context),
                   child: Container(
                     padding: const EdgeInsets.all(7),
@@ -262,6 +299,127 @@ class _DishManageCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+const _txnMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+String _txnDate(DateTime? d) => d == null ? '—' : '${_txnMonths[d.month - 1]} ${d.day.toString().padLeft(2, '0')}, ${d.year}';
+
+String _txnRs(double v) => 'Rs ${v.toStringAsFixed(v == v.roundToDouble() ? 0 : 2)}';
+
+/// "Transactions" bottom sheet reached from a dish card's receipt icon,
+/// backed by `GET /api/dish/{id}/transactions` — there's no dish-detail
+/// screen in the app yet, so this is a lightweight sheet rather than a full
+/// new screen (checkoutId/amount/quantity/invoice number per Swagger).
+class DishTransactionsSheet extends StatefulWidget {
+  final Dish dish;
+  const DishTransactionsSheet({super.key, required this.dish});
+
+  static Future<void> show(BuildContext context, {required Dish dish}) {
+    return showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DishTransactionsSheet(dish: dish),
+    );
+  }
+
+  @override
+  State<DishTransactionsSheet> createState() => _DishTransactionsSheetState();
+}
+
+class _DishTransactionsSheetState extends State<DishTransactionsSheet> {
+  late Future<List<DishTransaction>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = context.read<DishProvider>().getDishTransactions(widget.dish.id);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.6,
+      minChildSize: 0.35,
+      maxChildSize: 0.85,
+      expand: false,
+      builder: (context, scrollController) {
+        return Container(
+          decoration: const BoxDecoration(color: AppTheme.surface, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${widget.dish.dishName} — Transactions',
+                    style: const TextStyle(color: AppTheme.textPrimary, fontSize: 18, fontWeight: FontWeight.bold, decoration: TextDecoration.none),
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: FutureBuilder<List<DishTransaction>>(
+                      future: _future,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState != ConnectionState.done) {
+                          return const Center(child: CircularProgressIndicator(color: AppTheme.accent));
+                        }
+                        if (snapshot.hasError) {
+                          return Center(
+                            child: Text('Could not load transactions.', style: const TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none)),
+                          );
+                        }
+                        final transactions = snapshot.data ?? [];
+                        if (transactions.isEmpty) {
+                          return const Center(
+                            child: Text('No transactions yet for this dish.', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13.5, decoration: TextDecoration.none)),
+                          );
+                        }
+                        return ListView.separated(
+                          controller: scrollController,
+                          itemCount: transactions.length,
+                          separatorBuilder: (_, _) => const SizedBox(height: 10),
+                          itemBuilder: (context, index) {
+                            final txn = transactions[index];
+                            return Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(color: AppTheme.card, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppTheme.divider)),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          txn.invoiceNumber ?? 'Checkout #${txn.checkoutId ?? '—'}',
+                                          style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600, fontSize: 13.5, decoration: TextDecoration.none),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(_txnDate(txn.date), style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12, decoration: TextDecoration.none)),
+                                      ],
+                                    ),
+                                  ),
+                                  Text('x${txn.quantity}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12.5, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
+                                  const SizedBox(width: 12),
+                                  Text(_txnRs(txn.amount), style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 14, decoration: TextDecoration.none)),
+                                ],
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

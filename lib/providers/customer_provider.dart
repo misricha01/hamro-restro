@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../core/network/api_exception.dart';
 import '../data/models/customer/customer_model.dart';
+import '../data/models/customer/customer_insight_model.dart';
 import '../data/repositories/customer_repository.dart';
 import 'order_provider.dart' show LoadStatus;
 
@@ -169,5 +170,72 @@ class CustomerProvider extends ChangeNotifier {
       isDeleting = false;
       notifyListeners();
     }
+  }
+
+  // --- Customer Detail insight tabs (dining/finance/spending) ---
+  // Each is keyed by customer id so switching between customers (or
+  // revisiting one) doesn't require a refetch mid-session.
+
+  LoadStatus diningInsightStatus = LoadStatus.idle;
+  CustomerDiningInsight? diningInsight;
+  String? diningInsightError;
+
+  Future<void> fetchDiningInsight(String customerId) async {
+    diningInsightStatus = LoadStatus.loading;
+    diningInsightError = null;
+    notifyListeners();
+    try {
+      diningInsight = await _repository.getDiningInsight(customerId);
+      diningInsightStatus = LoadStatus.loaded;
+    } on ApiException catch (e) {
+      diningInsightError = e.message;
+      diningInsightStatus = LoadStatus.error;
+    } catch (_) {
+      diningInsightError = 'Something went wrong. Please try again.';
+      diningInsightStatus = LoadStatus.error;
+    }
+    notifyListeners();
+  }
+
+  LoadStatus financeInsightStatus = LoadStatus.idle;
+  CustomerFinanceInsight? financeInsight;
+  String? financeInsightError;
+
+  Future<void> fetchFinanceInsight(String customerId, {String? startDate, String? endDate}) async {
+    financeInsightStatus = LoadStatus.loading;
+    financeInsightError = null;
+    notifyListeners();
+    try {
+      financeInsight = await _repository.getFinanceInsight(customerId, startDate: startDate, endDate: endDate);
+      financeInsightStatus = LoadStatus.loaded;
+    } on ApiException catch (e) {
+      financeInsightError = e.message;
+      financeInsightStatus = LoadStatus.error;
+    } catch (_) {
+      financeInsightError = 'Something went wrong. Please try again.';
+      financeInsightStatus = LoadStatus.error;
+    }
+    notifyListeners();
+  }
+
+  LoadStatus spendingBehaviourStatus = LoadStatus.idle;
+  CustomerSpendingBehaviour? spendingBehaviour;
+  String? spendingBehaviourError;
+
+  Future<void> fetchSpendingBehaviour(String customerId, {String? startDate, String? endDate}) async {
+    spendingBehaviourStatus = LoadStatus.loading;
+    spendingBehaviourError = null;
+    notifyListeners();
+    try {
+      spendingBehaviour = await _repository.getSpendingBehaviour(customerId, startDate: startDate, endDate: endDate);
+      spendingBehaviourStatus = LoadStatus.loaded;
+    } on ApiException catch (e) {
+      spendingBehaviourError = e.message;
+      spendingBehaviourStatus = LoadStatus.error;
+    } catch (_) {
+      spendingBehaviourError = 'Something went wrong. Please try again.';
+      spendingBehaviourStatus = LoadStatus.error;
+    }
+    notifyListeners();
   }
 }

@@ -18,7 +18,32 @@ class NotificationProvider extends ChangeNotifier {
 
   List<AppNotification> get orderNotifications => notifications.where((n) => n.type == 'order').toList();
 
-  List<AppNotification> get activityNotifications => notifications.where((n) => n.type != 'order').toList();
+  /// Backed by `GET /api/notification/log` when that call has succeeded at
+  /// least once ([activityLogStatus] is `loaded`); otherwise falls back to
+  /// client-filtering the main [notifications] list by type, so a shape
+  /// mismatch or backend error on the log endpoint never breaks the tab.
+  List<AppNotification> get activityNotifications {
+    if (activityLogStatus == LoadStatus.loaded) return activityLog;
+    return notifications.where((n) => n.type != 'order').toList();
+  }
+
+  LoadStatus activityLogStatus = LoadStatus.idle;
+  List<AppNotification> activityLog = [];
+
+  Future<void> fetchActivityLog() async {
+    activityLogStatus = LoadStatus.loading;
+    notifyListeners();
+
+    try {
+      activityLog = await _repository.getNotificationLog();
+      activityLogStatus = LoadStatus.loaded;
+    } catch (_) {
+      // Falls back to the client-filtered [notifications] list — see
+      // [activityNotifications].
+      activityLogStatus = LoadStatus.error;
+    }
+    notifyListeners();
+  }
 
   Future<void> fetchNotifications() async {
     status = LoadStatus.loading;
@@ -105,6 +130,62 @@ class NotificationProvider extends ChangeNotifier {
       return false;
     } finally {
       _markingAsRead.remove(id);
+      notifyListeners();
+    }
+  }
+
+  bool isUpdating = false;
+  String? updateErrorMessage;
+
+  Future<AppNotification?> updateNotification({
+    required String id,
+    required String title,
+    required String subject,
+    required String notificationMessage,
+    required String type,
+  }) async {
+    isUpdating = true;
+    updateErrorMessage = null;
+    notifyListeners();
+
+    try {
+      final updated = await _repository.updateNotification(id: id, title: title, subject: subject, notificationMessage: notificationMessage, type: type);
+      notifications = notifications.map((n) => n.id == id ? updated : n).toList();
+      activityLog = activityLog.map((n) => n.id == id ? updated : n).toList();
+      return updated;
+    } on ApiException catch (e) {
+      updateErrorMessage = e.message;
+      return null;
+    } catch (_) {
+      updateErrorMessage = 'Something went wrong. Please try again.';
+      return null;
+    } finally {
+      isUpdating = false;
+      notifyListeners();
+    }
+  }
+
+  bool isDeleting = false;
+  String? deleteErrorMessage;
+
+  Future<bool> deleteNotification(String id) async {
+    isDeleting = true;
+    deleteErrorMessage = null;
+    notifyListeners();
+
+    try {
+      await _repository.deleteNotification(id);
+      notifications = notifications.where((n) => n.id != id).toList();
+      activityLog = activityLog.where((n) => n.id != id).toList();
+      return true;
+    } on ApiException catch (e) {
+      deleteErrorMessage = e.message;
+      return false;
+    } catch (_) {
+      deleteErrorMessage = 'Something went wrong. Please try again.';
+      return false;
+    } finally {
+      isDeleting = false;
       notifyListeners();
     }
   }

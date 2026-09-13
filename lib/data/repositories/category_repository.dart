@@ -4,6 +4,37 @@ import '../../core/network/dio_client.dart';
 import '../../core/network/api_exception.dart';
 import '../models/category/category_model.dart';
 
+class CategoryStats {
+  final int totalCategory;
+  final String? topSoldName;
+  final int? topSoldOrders;
+  final String? mostDishName;
+  final int? mostDishCount;
+  final double averageDishPerCategory;
+
+  CategoryStats({
+    required this.totalCategory,
+    this.topSoldName,
+    this.topSoldOrders,
+    this.mostDishName,
+    this.mostDishCount,
+    required this.averageDishPerCategory,
+  });
+
+  factory CategoryStats.fromJson(Map<String, dynamic> json) {
+    final topSold = json['topSold'] as Map<String, dynamic>?;
+    final mostDish = json['mostDish'] as Map<String, dynamic>?;
+    return CategoryStats(
+      totalCategory: json['totalCategory'] as int? ?? 0,
+      topSoldName: topSold?['name'] as String?,
+      topSoldOrders: topSold?['noOfOrder'] as int?,
+      mostDishName: mostDish?['name'] as String?,
+      mostDishCount: mostDish?['noOfDish'] as int?,
+      averageDishPerCategory: (json['averageDishPerCategory'] as num?)?.toDouble() ?? 0,
+    );
+  }
+}
+
 abstract class CategoryRepository {
   Future<List<MenuCategory>> getCategories();
 
@@ -12,6 +43,8 @@ abstract class CategoryRepository {
   Future<MenuCategory> updateCategory({required String id, required String categoryName, String? image});
 
   Future<void> deleteCategory(String id);
+
+  Future<CategoryStats> getCategoryStats();
 }
 
 class CategoryRepositoryImpl implements CategoryRepository {
@@ -79,6 +112,17 @@ class CategoryRepositoryImpl implements CategoryRepository {
   Future<void> deleteCategory(String id) async {
     try {
       await _dio.delete('${ApiConstants.menuCategories}/$id');
+    } on DioException catch (e) {
+      throw mapDioError(e);
+    }
+  }
+
+  @override
+  Future<CategoryStats> getCategoryStats() async {
+    try {
+      final response = await _dio.get('${ApiConstants.menuCategories}/stats');
+      final data = response.data['data'] as Map<String, dynamic>? ?? {};
+      return CategoryStats.fromJson(data);
     } on DioException catch (e) {
       throw mapDioError(e);
     }

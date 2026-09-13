@@ -52,4 +52,52 @@ class ExpenseCategoryProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  bool isUpdating = false;
+  String? updateErrorMessage;
+
+  Future<ExpenseCategory?> updateExpenseCategory({required String id, required String name, String? description}) async {
+    isUpdating = true;
+    updateErrorMessage = null;
+    notifyListeners();
+
+    try {
+      final category = await _repository.updateExpenseCategory(id: id, name: name, description: description);
+      categories = categories.map((c) => c.id == id ? category : c).toList();
+      return category;
+    } on ApiException catch (e) {
+      updateErrorMessage = e.message;
+      return null;
+    } catch (_) {
+      updateErrorMessage = 'Something went wrong. Please try again.';
+      return null;
+    } finally {
+      isUpdating = false;
+      notifyListeners();
+    }
+  }
+
+  bool isDeleting = false;
+  String? deleteErrorMessage;
+
+  Future<bool> deleteExpenseCategory(String id) async {
+    isDeleting = true;
+    deleteErrorMessage = null;
+    notifyListeners();
+
+    try {
+      await _repository.deleteExpenseCategory(id);
+      categories = categories.where((c) => c.id != id).toList();
+      return true;
+    } on ApiException catch (e) {
+      deleteErrorMessage = e.message;
+      return false;
+    } catch (_) {
+      deleteErrorMessage = 'Something went wrong. Please try again.';
+      return false;
+    } finally {
+      isDeleting = false;
+      notifyListeners();
+    }
+  }
 }

@@ -4,6 +4,40 @@ import '../../core/network/dio_client.dart';
 import '../../core/network/api_exception.dart';
 import '../models/orders/table_model.dart';
 
+/// Aggregated table stats (backend: `GET /api/table/stats`). `mostUsedTable`
+/// in the raw response is a nested object that can be `null` when there's no
+/// order data yet — this flattens it into optional fields instead of a
+/// nested type, so callers don't have to null-check twice.
+class TableStats {
+  final int totalTables;
+  final int totalActiveTables;
+  final int totalOccupiedTables;
+  final String? mostUsedTableName;
+  final int? mostUsedTableOrders;
+  final double? mostUsedTableRevenue;
+
+  const TableStats({
+    required this.totalTables,
+    required this.totalActiveTables,
+    required this.totalOccupiedTables,
+    this.mostUsedTableName,
+    this.mostUsedTableOrders,
+    this.mostUsedTableRevenue,
+  });
+
+  factory TableStats.fromJson(Map<String, dynamic> json) {
+    final mostUsedTable = json['mostUsedTable'] as Map<String, dynamic>?;
+    return TableStats(
+      totalTables: (json['totalTables'] as num?)?.toInt() ?? 0,
+      totalActiveTables: (json['totalActiveTables'] as num?)?.toInt() ?? 0,
+      totalOccupiedTables: (json['totalOccupiedTables'] as num?)?.toInt() ?? 0,
+      mostUsedTableName: mostUsedTable?['name'] as String?,
+      mostUsedTableOrders: (mostUsedTable?['orders'] as num?)?.toInt(),
+      mostUsedTableRevenue: (mostUsedTable?['revenue'] as num?)?.toDouble(),
+    );
+  }
+}
+
 abstract class TableRepository {
   Future<List<RestaurantTable>> getTables();
 
@@ -42,6 +76,8 @@ abstract class TableRepository {
   /// order sessions onto [toTableId] (which need not be one of them).
   /// Returns the backend's status message, same caveat as [moveTable].
   Future<String> mergeTable({required List<String> fromTableIds, required String toTableId});
+
+  Future<TableStats> getTableStats();
 }
 
 class TableRepositoryImpl implements TableRepository {
@@ -178,6 +214,16 @@ class TableRepositoryImpl implements TableRepository {
         data: {'fromTableIds': fromTableIds, 'toTableId': toTableId},
       );
       return response.data['message'] as String? ?? 'Tables merged';
+    } on DioException catch (e) {
+      throw mapDioError(e);
+    }
+  }
+
+  @override
+  Future<TableStats> getTableStats() async {
+    try {
+      final response = await _dio.get('${ApiConstants.tables}/stats');
+      return TableStats.fromJson(response.data['data'] as Map<String, dynamic>? ?? const {});
     } on DioException catch (e) {
       throw mapDioError(e);
     }

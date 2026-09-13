@@ -24,9 +24,11 @@ class AddAddOnScreen extends StatefulWidget {
 class _AddAddOnScreenState extends State<AddAddOnScreen> {
   final _nameController = TextEditingController();
   final _priceController = TextEditingController();
+  final _cogsController = TextEditingController();
   String? _selectedImageSource;
   bool _nameError = false;
   bool _priceError = false;
+  bool _cogsError = false;
 
   @override
   void initState() {
@@ -35,6 +37,7 @@ class _AddAddOnScreenState extends State<AddAddOnScreen> {
     if (addon != null) {
       _nameController.text = addon.addonName;
       _priceController.text = addon.price.toStringAsFixed(0);
+      _cogsController.text = addon.cogs.toStringAsFixed(0);
     }
   }
 
@@ -42,6 +45,7 @@ class _AddAddOnScreenState extends State<AddAddOnScreen> {
   void dispose() {
     _nameController.dispose();
     _priceController.dispose();
+    _cogsController.dispose();
     super.dispose();
   }
 
@@ -53,17 +57,22 @@ class _AddAddOnScreenState extends State<AddAddOnScreen> {
   Future<void> _save() async {
     final name = _nameController.text.trim();
     final price = double.tryParse(_priceController.text.trim());
+    // Backend requires `cogs` (cost of goods sold) on both create and
+    // update — confirmed live, omitting it 400s ("cogs must be a number
+    // conforming to the specified constraints, cogs should not be empty").
+    final cogs = double.tryParse(_cogsController.text.trim());
     setState(() {
       _nameError = name.isEmpty;
       _priceError = price == null;
+      _cogsError = cogs == null;
     });
-    if (_nameError || _priceError) return;
+    if (_nameError || _priceError || _cogsError) return;
 
     final provider = context.read<AddOnProvider>();
     final messenger = ScaffoldMessenger.of(context);
     final addon = widget.isEditing
-        ? await provider.updateAddOn(id: widget.existingAddOn!.id, addonName: name, price: price!)
-        : await provider.createAddOn(addonName: name, price: price!);
+        ? await provider.updateAddOn(id: widget.existingAddOn!.id, addonName: name, price: price!, cogs: cogs!)
+        : await provider.createAddOn(addonName: name, price: price!, cogs: cogs!);
     if (!mounted) return;
 
     if (addon != null) {
@@ -125,6 +134,19 @@ class _AddAddOnScreenState extends State<AddAddOnScreen> {
             errorText: _priceError ? 'Enter a valid amount' : null,
             onChanged: (v) {
               if (_priceError && double.tryParse(v.trim()) != null) setState(() => _priceError = false);
+            },
+          ),
+          const SizedBox(height: 20),
+          const _FieldLabel(label: 'Cost of Goods (COGS)', required: true),
+          const SizedBox(height: 8),
+          _AppTextField(
+            controller: _cogsController,
+            hint: '00.00',
+            prefix: 'Rs',
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            errorText: _cogsError ? 'Enter a valid amount' : null,
+            onChanged: (v) {
+              if (_cogsError && double.tryParse(v.trim()) != null) setState(() => _cogsError = false);
             },
           ),
           const SizedBox(height: 20),

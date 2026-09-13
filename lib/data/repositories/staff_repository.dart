@@ -9,6 +9,11 @@ abstract class StaffRepository {
 
   Future<StaffMember> getStaffById(String id);
 
+  /// `GET /api/user/profile` -- the currently authenticated user's own
+  /// profile (as opposed to `getStaffById`, which looks up any staff
+  /// member by id).
+  Future<StaffMember> getProfile();
+
   Future<StaffMember> createStaff({
     required String fullname,
     required String email,
@@ -57,6 +62,23 @@ class StaffRepositoryImpl implements StaffRepository {
   }
 
   @override
+  Future<StaffMember> getProfile() async {
+    try {
+      final response = await _dio.get(ApiConstants.myProfile);
+      // NOTE: Swagger documents no response schema for this endpoint (empty
+      // 200), unlike every other endpoint here which wraps its payload in
+      // `{"data": ...}`. Handling both shapes defensively until this is
+      // confirmed live -- if the real response nests further (e.g.
+      // `{"data": {"user": {...}}}`), adjust this unwrap accordingly.
+      final raw = response.data;
+      final body = raw is Map<String, dynamic> && raw['data'] != null ? raw['data'] as Map<String, dynamic> : raw as Map<String, dynamic>;
+      return StaffMember.fromJson(body);
+    } on DioException catch (e) {
+      throw mapDioError(e);
+    }
+  }
+
+  @override
   Future<StaffMember> createStaff({
     required String fullname,
     required String email,
@@ -72,7 +94,14 @@ class StaffRepositoryImpl implements StaffRepository {
           'email': email,
           'password': password,
           'position': position,
-          if (role != null && role.isNotEmpty) 'role': role,
+          // The backend's `role` field here only accepts a small fixed set
+          // of base types ("user"/"admin") — it is NOT the same vocabulary
+          // as the custom RBAC role names from `GET /api/roles` (confirmed
+          // live: sending a custom role name or omitting this field both
+          // 400 with "Valid role required."). The caller's actual role
+          // pick is applied afterward via `RbacRepository.assignRole`
+          // (see StaffProvider.createStaff), which does accept custom names.
+          'role': 'user',
         },
       );
       final raw = response.data['data'];

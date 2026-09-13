@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../data/models/auth/logged_in_user.dart';
 import '../../providers/auth_provider.dart';
 import '../notification/notification_screen.dart';
+import 'my_profile_screen.dart';
+import 'my_profile_screen.dart';
 import '../create_users/invite_staff_screen.dart';
 import '../create_dish/add_dish_screen.dart' show SelectAddOnsSheet;
 import 'manage_dishes_screen.dart';
@@ -192,7 +195,10 @@ class ManageScreen extends StatelessWidget {
                 style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.w600, fontSize: 14, decoration: TextDecoration.none),
               ),
             ),
-            _ProfileCard(onTap: () => _todo(context)),
+            _ProfileCard(
+              user: context.watch<AuthProvider>().currentUser,
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MyProfileScreen())),
+            ),
             const SizedBox(height: 16),
 
             _SectionCard(
@@ -498,11 +504,21 @@ class _SectionCard extends StatelessWidget {
 }
 
 class _ProfileCard extends StatelessWidget {
+  final LoggedInUser? user;
   final VoidCallback onTap;
-  const _ProfileCard({required this.onTap});
+  const _ProfileCard({required this.user, required this.onTap});
+
+  String _initials(String name) {
+    final words = name.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    if (words.isEmpty) return '?';
+    if (words.length == 1) return words[0][0].toUpperCase();
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final name = user?.fullname.isNotEmpty == true ? user!.fullname : 'Account';
+    final email = user?.email ?? '';
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: onTap,
@@ -516,24 +532,24 @@ class _ProfileCard extends StatelessWidget {
               height: 52,
               alignment: Alignment.center,
               decoration: BoxDecoration(color: AppTheme.card, borderRadius: BorderRadius.circular(12)),
-              child: const Text(
-                'KM',
-                style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 15, decoration: TextDecoration.none),
+              child: Text(
+                _initials(name),
+                style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 15, decoration: TextDecoration.none),
               ),
             ),
             const SizedBox(width: 14),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Kritika Mishra',
-                    style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 16, decoration: TextDecoration.none),
+                    name,
+                    style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 16, decoration: TextDecoration.none),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
-                    '@kritikamishra',
-                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 13, decoration: TextDecoration.none),
+                    email,
+                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13, decoration: TextDecoration.none),
                   ),
                 ],
               ),
@@ -565,9 +581,9 @@ class _LogoutButton extends StatelessWidget {
         ),
         child: isLoading
             ? const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.2, color: AppTheme.cancelled))],
-              )
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.2, color: AppTheme.cancelled))],
+        )
             : const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

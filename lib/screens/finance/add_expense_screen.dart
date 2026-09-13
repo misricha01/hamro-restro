@@ -7,6 +7,7 @@ import '../../providers/expense_category_provider.dart';
 import '../../providers/expense_provider.dart';
 import '../../providers/order_provider.dart' show LoadStatus;
 import '../../providers/payment_method_provider.dart';
+import '../../widgets/common/edit_delete_actions_sheet.dart';
 import '../../widgets/common/finance_form_fields.dart';
 
 /// "Add Expense" — real form matching the backend's `/api/expenses` DTO
@@ -340,6 +341,74 @@ class _SelectExpenseCategorySheetState extends State<SelectExpenseCategorySheet>
     }
   }
 
+  Future<void> _openActions(ExpenseCategory category) async {
+    final action = await EditDeleteActionsSheet.show(context, title: category.name);
+    if (!mounted) return;
+    if (action == 'edit') {
+      await _editCategory(category);
+    } else if (action == 'delete') {
+      await _confirmDeleteCategory(category);
+    }
+  }
+
+  Future<void> _editCategory(ExpenseCategory category) async {
+    final controller = TextEditingController(text: category.name);
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surface,
+        title: const Text('Edit Category', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, decoration: TextDecoration.none)),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          style: const TextStyle(color: AppTheme.textPrimary, decoration: TextDecoration.none),
+          decoration: const InputDecoration(hintText: 'Category name', hintStyle: TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none)),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none))),
+          TextButton(
+            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            child: const Text('Save', style: TextStyle(color: AppTheme.accent, fontWeight: FontWeight.w700, decoration: TextDecoration.none)),
+          ),
+        ],
+      ),
+    );
+    if (newName == null || newName.isEmpty || newName == category.name || !mounted) return;
+
+    final provider = context.read<ExpenseCategoryProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    final updated = await provider.updateExpenseCategory(id: category.id, name: newName, description: category.description);
+    if (updated == null && mounted) {
+      messenger.showSnackBar(SnackBar(content: Text(provider.updateErrorMessage ?? 'Failed to update category')));
+    }
+  }
+
+  Future<void> _confirmDeleteCategory(ExpenseCategory category) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surface,
+        title: const Text('Delete Category', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, decoration: TextDecoration.none)),
+        content: Text(
+          'Remove "${category.name}"? This cannot be undone.',
+          style: const TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none))),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete', style: TextStyle(color: AppTheme.cancelled, fontWeight: FontWeight.w700, decoration: TextDecoration.none))),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final provider = context.read<ExpenseCategoryProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    final success = await provider.deleteExpenseCategory(category.id);
+    if (!success && mounted) {
+      messenger.showSnackBar(SnackBar(content: Text(provider.deleteErrorMessage ?? 'Failed to delete category')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ExpenseCategoryProvider>();
@@ -493,7 +562,17 @@ class _SelectExpenseCategorySheetState extends State<SelectExpenseCategorySheet>
                       child: const Icon(Icons.category_outlined, color: AppTheme.accent, size: 22),
                     ),
                     const SizedBox(width: 14),
-                    Text(category.name, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
+                    Expanded(
+                      child: Text(category.name, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
+                    ),
+                    InkWell(
+                      onTap: () => _openActions(category),
+                      borderRadius: BorderRadius.circular(8),
+                      child: const Padding(
+                        padding: EdgeInsets.all(4),
+                        child: Icon(Icons.more_vert, color: AppTheme.textSecondary, size: 18),
+                      ),
+                    ),
                   ],
                 ),
               ),

@@ -4,6 +4,13 @@ import '../../core/network/dio_client.dart';
 import '../../core/network/api_exception.dart';
 import '../models/dish_type/dish_type_model.dart';
 
+class DishTypeCounts {
+  final int total;
+  final int active;
+
+  const DishTypeCounts({required this.total, required this.active});
+}
+
 abstract class DishTypeRepository {
   Future<List<DishType>> getDishTypes();
 
@@ -12,6 +19,8 @@ abstract class DishTypeRepository {
   Future<DishType> updateDishType({required String id, required String dishTypeName});
 
   Future<void> deleteDishType(String id);
+
+  Future<DishTypeCounts> getDishTypeCounts();
 }
 
 class DishTypeRepositoryImpl implements DishTypeRepository {
@@ -33,7 +42,9 @@ class DishTypeRepositoryImpl implements DishTypeRepository {
   @override
   Future<DishType> createDishType({required String dishTypeName}) async {
     try {
-      final response = await _dio.post(ApiConstants.dishTypes, data: {'dishTypeName': dishTypeName});
+      // Confirmed live: the backend's CreateDishTypeDto field is `name`,
+      // not `dishTypeName` (400 "property dishTypeName should not exist").
+      final response = await _dio.post(ApiConstants.dishTypes, data: {'name': dishTypeName});
       final raw = response.data['data'];
       if (raw is Map<String, dynamic>) {
         return DishType.fromJson(raw);
@@ -56,9 +67,9 @@ class DishTypeRepositoryImpl implements DishTypeRepository {
   @override
   Future<DishType> updateDishType({required String id, required String dishTypeName}) async {
     try {
-      final response = await _dio.patch('${ApiConstants.dishTypes}/$id', data: {'dishTypeName': dishTypeName});
+      final response = await _dio.patch('${ApiConstants.dishTypes}/$id', data: {'name': dishTypeName});
       final raw = response.data['data'];
-      if (raw is Map<String, dynamic> && raw['dishTypeName'] != null) return DishType.fromJson(raw);
+      if (raw is Map<String, dynamic> && raw['name'] != null) return DishType.fromJson(raw);
 
       final dishTypes = await getDishTypes();
       final match = dishTypes.where((d) => d.id == id).toList();
@@ -76,5 +87,27 @@ class DishTypeRepositoryImpl implements DishTypeRepository {
     } on DioException catch (e) {
       throw mapDioError(e);
     }
+  }
+
+  @override
+  Future<DishTypeCounts> getDishTypeCounts() async {
+    try {
+      final results = await Future.wait([
+        _dio.get('${ApiConstants.dishTypes}/count/total'),
+        _dio.get('${ApiConstants.dishTypes}/count/active'),
+      ]);
+      return DishTypeCounts(total: _parseCount(results[0].data['data']), active: _parseCount(results[1].data['data']));
+    } on DioException catch (e) {
+      throw mapDioError(e);
+    }
+  }
+
+  static int _parseCount(dynamic raw) {
+    if (raw is num) return raw.toInt();
+    if (raw is Map<String, dynamic>) {
+      final value = raw['count'] ?? raw['total'] ?? raw['activeCount'] ?? (raw.values.isNotEmpty ? raw.values.first : null);
+      if (value is num) return value.toInt();
+    }
+    return 0;
   }
 }

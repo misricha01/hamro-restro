@@ -4,10 +4,29 @@ import '../../core/theme/app_theme.dart';
 import '../../data/models/notification/notification_model.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/order_provider.dart' show LoadStatus;
+import '../../widgets/common/confirm_delete_dialog.dart';
+import '../../widgets/common/edit_delete_actions_sheet.dart';
 
 const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 String _formatDate(DateTime d) => '${_months[d.month - 1]} ${d.day.toString().padLeft(2, '0')}, ${d.year}';
+
+Future<void> _openNotificationActions(BuildContext context, AppNotification notification) async {
+  final action = await EditDeleteActionsSheet.show(context, title: notification.title);
+  if (!context.mounted) return;
+  if (action == 'edit') {
+    await ComposeNotificationSheet.show(context, existingNotification: notification);
+  } else if (action == 'delete') {
+    final confirmed = await confirmDelete(context, entityName: 'notification');
+    if (!confirmed || !context.mounted) return;
+    final provider = context.read<NotificationProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    final success = await provider.deleteNotification(notification.id);
+    if (!success && context.mounted) {
+      messenger.showSnackBar(SnackBar(content: Text(provider.deleteErrorMessage ?? 'Failed to delete notification')));
+    }
+  }
+}
 
 String _formatTime(DateTime d) {
   final hour12 = d.hour % 12 == 0 ? 12 : d.hour % 12;
@@ -55,6 +74,9 @@ class _NotificationScreenState extends State<NotificationScreen>
     final provider = context.read<NotificationProvider>();
     if (provider.status == LoadStatus.idle) {
       WidgetsBinding.instance.addPostFrameCallback((_) => provider.fetchNotifications());
+    }
+    if (provider.activityLogStatus == LoadStatus.idle) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => provider.fetchActivityLog());
     }
   }
 
@@ -230,6 +252,7 @@ class _OrderNotificationTile extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: () => context.read<NotificationProvider>().markNotificationAsRead(notification.id),
+      onLongPress: () => _openNotificationActions(context, notification),
       child: Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
@@ -392,7 +415,10 @@ class _ActivityLogTab extends StatelessWidget {
                       ),
                     )
                   : RefreshIndicator(
-                      onRefresh: () => context.read<NotificationProvider>().fetchNotifications(),
+                      onRefresh: () {
+                        final provider = context.read<NotificationProvider>();
+                        return Future.wait([provider.fetchNotifications(), provider.fetchActivityLog()]);
+                      },
                       child: ListView(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         children: grouped.entries.map((entry) {
@@ -434,6 +460,7 @@ class _ActivityTile extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(10),
       onTap: () => context.read<NotificationProvider>().markNotificationAsRead(item.id),
+      onLongPress: () => _openNotificationActions(context, item),
       child: Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
@@ -497,14 +524,18 @@ class _ActivityTile extends StatelessWidget {
 /// (`POST /api/notification`). `type` maps to the same 'order' / anything
 /// else split the two tabs already use to filter the list client-side.
 class ComposeNotificationSheet extends StatefulWidget {
-  const ComposeNotificationSheet({super.key});
+  final AppNotification? existingNotification;
 
-  static Future<void> show(BuildContext context) {
+  const ComposeNotificationSheet({super.key, this.existingNotification});
+
+  bool get isEditing => existingNotification != null;
+
+  static Future<void> show(BuildContext context, {AppNotification? existingNotification}) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => const ComposeNotificationSheet(),
+      builder: (context) => ComposeNotificationSheet(existingNotification: existingNotification),
     );
   }
 
@@ -521,6 +552,18 @@ class _ComposeNotificationSheetState extends State<ComposeNotificationSheet> {
   bool _titleError = false;
   bool _subjectError = false;
   bool _messageError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final existing = widget.existingNotification;
+    if (existing != null) {
+      _titleController.text = existing.title;
+      _subjectController.text = existing.subject;
+      _messageController.text = existing.notificationMessage;
+      _isOrderType = existing.type == 'order';
+    }
+  }
 
   @override
   void dispose() {
@@ -542,24 +585,28 @@ class _ComposeNotificationSheetState extends State<ComposeNotificationSheet> {
     if (_titleError || _subjectError || _messageError) return;
 
     final provider = context.read<NotificationProvider>();
-    final result = await provider.createNotification(
-      title: title,
-      subject: subject,
-      notificationMessage: message,
-      type: _isOrderType ? 'order' : 'general',
-    );
+    // Backend enum is `all`/`order`/`activity` only — confirmed live that
+    // `'general'` 400s ("type must be one of the following values: all,
+    // order, activity").
+    final type = _isOrderType ? 'order' : 'all';
+    final existing = widget.existingNotification;
+    final result = existing != null
+        ? await provider.updateNotification(id: existing.id, title: title, subject: subject, notificationMessage: message, type: type)
+        : await provider.createNotification(title: title, subject: subject, notificationMessage: message, type: type);
     if (!mounted) return;
     if (result != null) {
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Notification sent')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(widget.isEditing ? 'Notification updated' : 'Notification sent')));
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(provider.createErrorMessage ?? 'Something went wrong. Please try again.')));
+      final message = widget.isEditing ? provider.updateErrorMessage : provider.createErrorMessage;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message ?? 'Something went wrong. Please try again.')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isCreating = context.watch<NotificationProvider>().isCreating;
+    final notifProvider = context.watch<NotificationProvider>();
+    final isCreating = widget.isEditing ? notifProvider.isUpdating : notifProvider.isCreating;
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: DraggableScrollableSheet(
@@ -578,7 +625,7 @@ class _ComposeNotificationSheetState extends State<ComposeNotificationSheet> {
                     controller: scrollController,
                     padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
                     children: [
-                      const Text('Compose Notification', style: TextStyle(color: AppTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none)),
+                      Text(widget.isEditing ? 'Edit Notification' : 'Compose Notification', style: const TextStyle(color: AppTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none)),
                       const SizedBox(height: 20),
 
                       const Text('Type', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600, fontSize: 14, decoration: TextDecoration.none)),
@@ -689,7 +736,7 @@ class _ComposeNotificationSheetState extends State<ComposeNotificationSheet> {
                           style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                           child: isCreating
                               ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                              : const Text('Send Notification', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
+                              : Text(widget.isEditing ? 'Update Notification' : 'Send Notification', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
                         ),
                       ),
                     ],
