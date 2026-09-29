@@ -91,8 +91,8 @@ class StockRepositoryImpl implements StockRepository {
           'rate': rate,
           if (description != null && description.isNotEmpty) 'description': description,
           'unitId': unitId,
-          if (stockGroupId != null) 'stockGroupId': stockGroupId,
-          if (supplierId != null) 'supplierId': supplierId,
+          'stockGroupId': ?stockGroupId,
+          'supplierId': ?supplierId,
         },
       );
       final raw = response.data['data'];
@@ -126,14 +126,14 @@ class StockRepositoryImpl implements StockRepository {
       final response = await _dio.patch(
         '${ApiConstants.stocks}/$id',
         data: {
-          if (itemName != null) 'itemName': itemName,
-          if (defaultPrice != null) 'defaultPrice': defaultPrice,
-          if (quantity != null) 'quantity': quantity,
-          if (rate != null) 'rate': rate,
-          if (description != null) 'description': description,
-          if (unitId != null) 'unitId': unitId,
-          if (stockGroupId != null) 'stockGroupId': stockGroupId,
-          if (supplierId != null) 'supplierId': supplierId,
+          'itemName': ?itemName,
+          'defaultPrice': ?defaultPrice,
+          'quantity': ?quantity,
+          'rate': ?rate,
+          'description': ?description,
+          'unitId': ?unitId,
+          'stockGroupId': ?stockGroupId,
+          'supplierId': ?supplierId,
         },
       );
       final raw = response.data['data'];
@@ -175,7 +175,7 @@ class StockRepositoryImpl implements StockRepository {
           'quantity': quantity,
           'rate': rate,
           'transactionDate': transactionDate.toIso8601String().split('T').first,
-          if (supplierId != null) 'supplierId': supplierId,
+          'supplierId': ?supplierId,
           if (remark != null && remark.isNotEmpty) 'remark': remark,
         },
       );
@@ -208,9 +208,9 @@ class StockRepositoryImpl implements StockRepository {
           'take': 200,
           if (startDate != null) 'startDate': fmt(startDate),
           if (endDate != null) 'endDate': fmt(endDate),
-          if (staffId != null) 'staffId': staffId,
-          if (stockId != null) 'stockId': stockId,
-          if (stockGroupId != null) 'stockGroupId': stockGroupId,
+          'staffId': ?staffId,
+          'stockId': ?stockId,
+          'stockGroupId': ?stockGroupId,
         },
       );
       final data = response.data['data'] as List<dynamic>? ?? [];

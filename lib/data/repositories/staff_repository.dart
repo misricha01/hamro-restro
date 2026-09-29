@@ -42,7 +42,7 @@ class StaffRepositoryImpl implements StaffRepository {
     try {
       final response = await _dio.get(
         '${ApiConstants.staff}/all',
-        queryParameters: {'page': 1, 'take': 200, if (role != null) 'role': role},
+        queryParameters: {'page': 1, 'take': 200, 'role': ?role},
       );
       final data = response.data['data'] as List<dynamic>? ?? [];
       return data.map((e) => StaffMember.fromJson(e as Map<String, dynamic>)).toList();
@@ -130,9 +130,9 @@ class StaffRepositoryImpl implements StaffRepository {
       final response = await _dio.patch(
         '${ApiConstants.staff}/$id',
         data: {
-          if (fullname != null) 'fullname': fullname,
-          if (email != null) 'email': email,
-          if (position != null) 'position': position,
+          'fullname': ?fullname,
+          'email': ?email,
+          'position': ?position,
         },
       );
       final raw = response.data['data'];

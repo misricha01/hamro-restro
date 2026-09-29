@@ -66,7 +66,7 @@ class CategoryRepositoryImpl implements CategoryRepository {
   @override
   Future<MenuCategory> createCategory({required String categoryName, String? image}) async {
     try {
-      final response = await _dio.post(ApiConstants.menuCategories, data: {'categoryName': categoryName, if (image != null) 'image': image});
+      final response = await _dio.post(ApiConstants.menuCategories, data: {'categoryName': categoryName, 'image': ?image});
       final raw = response.data['data'];
       if (raw is Map<String, dynamic>) {
         return MenuCategory.fromJson(raw);
@@ -94,7 +94,7 @@ class CategoryRepositoryImpl implements CategoryRepository {
       // this always keeps it active, same as TypeOfMenuRepositoryImpl's default.
       final response = await _dio.patch(
         '${ApiConstants.menuCategories}/$id',
-        data: {'categoryName': categoryName, 'status': true, if (image != null) 'image': image},
+        data: {'categoryName': categoryName, 'status': true, 'image': ?image},
       );
       final raw = response.data['data'];
       if (raw is Map<String, dynamic> && raw['categoryName'] != null) return MenuCategory.fromJson(raw);

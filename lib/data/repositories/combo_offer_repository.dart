@@ -63,7 +63,7 @@ class ComboOfferRepositoryImpl implements ComboOfferRepository {
       'name': name,
       if (description != null && description.isNotEmpty) 'description': description,
       if (hsCode != null && hsCode.isNotEmpty) 'hsCode': hsCode,
-      if (comboPhoto != null) 'comboPhoto': comboPhoto,
+      'comboPhoto': ?comboPhoto,
       'dishIds': dishIds,
       'offerPrice': offerPrice,
       'startsAt': startsAt.toUtc().toIso8601String(),

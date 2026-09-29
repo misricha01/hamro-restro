@@ -278,7 +278,7 @@ class _RecordListErrorCard extends StatelessWidget {
 /// local-only for now, matching the rest of the Analytics module. Public so
 /// [DaybookSalesSummaryScreen] can reuse it too.
 class SalesInvoiceTab extends StatefulWidget {
-  const SalesInvoiceTab();
+  const SalesInvoiceTab({super.key});
 
   @override
   State<SalesInvoiceTab> createState() => _SalesInvoiceTabState();
@@ -440,7 +440,7 @@ class _SalesInvoiceCard extends StatelessWidget {
 /// local-only for now, matching the rest of the Analytics module. Public so
 /// [DaybookSalesSummaryScreen] can reuse it too.
 class PurchaseBillsTab extends StatefulWidget {
-  const PurchaseBillsTab();
+  const PurchaseBillsTab({super.key});
 
   @override
   State<PurchaseBillsTab> createState() => _PurchaseBillsTabState();

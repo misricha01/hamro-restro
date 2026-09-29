@@ -232,7 +232,7 @@ class CustomerRepositoryImpl implements CustomerRepository {
     try {
       final response = await _dio.get(
         '${ApiConstants.customers}/$customerId/finance-insight',
-        queryParameters: {if (startDate != null) 'startDate': startDate, if (endDate != null) 'endDate': endDate},
+        queryParameters: {'startDate': ?startDate, 'endDate': ?endDate},
       );
       return CustomerFinanceInsight.fromJson(response.data['data'] as Map<String, dynamic>? ?? {});
     } on DioException catch (e) {
@@ -245,7 +245,7 @@ class CustomerRepositoryImpl implements CustomerRepository {
     try {
       final response = await _dio.get(
         '${ApiConstants.customers}/$customerId/spending-behaviour',
-        queryParameters: {if (startDate != null) 'startDate': startDate, if (endDate != null) 'endDate': endDate},
+        queryParameters: {'startDate': ?startDate, 'endDate': ?endDate},
       );
       return CustomerSpendingBehaviour.fromJson(response.data['data'] as Map<String, dynamic>? ?? {});
     } on DioException catch (e) {

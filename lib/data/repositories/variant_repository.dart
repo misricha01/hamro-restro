@@ -52,7 +52,7 @@ class VariantRepositoryImpl implements VariantRepository {
   }) {
     return {
       'variantName': variantName,
-      if (unitId != null) 'unitId': unitId,
+      'unitId': ?unitId,
       'actualPrice': actualPrice,
       'discount': discount,
       'cogs': cogs,
