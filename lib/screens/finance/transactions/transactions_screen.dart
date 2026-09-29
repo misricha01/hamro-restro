@@ -37,7 +37,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final salesProvider = context.read<SalesTransactionProvider>();
     final purchaseProvider = context.read<PurchaseBillProvider>();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (salesProvider.status == LoadStatus.idle) salesProvider.fetchTransactions();
+      // Fetch completed sales unconditionally: the "Sales" card shows the
+      // backend-computed total (message.totalCheckoutAmount), which the API
+      // only populates when a checkoutStatus filter is sent. The idle guard is
+      // not reused here because the shared provider may already be "loaded"
+      // from another screen's no-status fetch (total 0), which would show a
+      // wrong Sales figure.
+      salesProvider.fetchTransactions(checkoutStatus: 'completed');
       if (purchaseProvider.status == LoadStatus.idle) purchaseProvider.fetchBills();
     });
   }
@@ -181,7 +187,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             ),
             const SizedBox(height: 16),
             Builder(builder: (context) {
-              final salesTotal = context.watch<SalesTransactionProvider>().transactions.fold(0.0, (sum, t) => sum + t.totalAmount);
+              final salesTotal = context.watch<SalesTransactionProvider>().totalAmount;
               final purchaseTotal = context.watch<PurchaseBillProvider>().bills.fold(0.0, (sum, b) => sum + b.amount);
               return SizedBox(
                 height: 78,

@@ -79,8 +79,8 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
 
   Future<void> _resolveExistingRefs(PurchaseBill bill) async {
     final supplierProvider = context.read<SupplierProvider>();
-    if (supplierProvider.status == LoadStatus.idle) await supplierProvider.fetchSuppliers();
     final customerProvider = context.read<CustomerProvider>();
+    if (supplierProvider.status == LoadStatus.idle) await supplierProvider.fetchSuppliers();
     if (customerProvider.status == LoadStatus.idle) await customerProvider.fetchCustomers();
     if (!mounted) return;
 

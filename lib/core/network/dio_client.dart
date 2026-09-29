@@ -1,35 +1,36 @@
 import 'dart:convert';
-
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../storage/auth_storage.dart';
-import 'api_client.dart';
 import 'api_constants.dart';
 
-/// Single shared Dio instance for the app. Attaches the stored access token
-/// to every outgoing request, and transparently refreshes an expired access
-/// token (via `/api/auth/refresh`) and retries the original request once.
-///
-/// If the refresh token itself is invalid/expired, [onUnauthenticated] is
-/// invoked so the app can drop the user back to the login screen — this
-/// class has no knowledge of `AuthProvider`/navigation itself.
+/// Single shared Dio instance for the entire app.
+/// Attaches stored access tokens to outgoing requests, injects tenant subdomain
+/// headers, and transparently refreshes expired JWT tokens on 401 status.
 class DioClient {
+  static DioClient? _instance;
   final AuthStorage _authStorage;
   late final Dio dio;
 
-  /// Called when a request fails with 401 and refreshing the session also
-  /// fails. Set by whoever owns the auth session (see `main.dart`).
+  /// Invoked when both access token and refresh token fail.
   VoidCallback? onUnauthenticated;
 
   Future<String?>? _refreshInFlight;
 
-  DioClient({AuthStorage? authStorage}) : _authStorage = authStorage ?? AuthStorage() {
+  /// Global singleton accessor for [DioClient].
+  static DioClient get instance => _instance ??= DioClient();
+
+  DioClient({AuthStorage? authStorage})
+      : _authStorage = authStorage ?? AuthStorage() {
     dio = Dio(
       BaseOptions(
         baseUrl: ApiConstants.baseUrl,
         connectTimeout: ApiConstants.connectTimeout,
         receiveTimeout: ApiConstants.receiveTimeout,
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
+        },
       ),
     );
 
@@ -50,7 +51,8 @@ class DioClient {
         },
         onError: (error, handler) async {
           final path = error.requestOptions.path;
-          final isAuthEndpoint = path == ApiConstants.login || path == ApiConstants.refresh;
+          final isAuthEndpoint =
+              path == ApiConstants.login || path == ApiConstants.refresh;
           final alreadyRetried = error.requestOptions.extra['retried'] == true;
 
           if (error.response?.statusCode != 401 || isAuthEndpoint || alreadyRetried) {
@@ -68,6 +70,7 @@ class DioClient {
           final retryOptions = error.requestOptions
             ..headers['Authorization'] = 'Bearer $newAccessToken'
             ..extra['retried'] = true;
+
           try {
             final response = await dio.fetch(retryOptions);
             handler.resolve(response);
@@ -79,12 +82,14 @@ class DioClient {
     );
 
     if (kDebugMode) {
-      dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true));
+      dio.interceptors.add(LogInterceptor(
+        requestBody: true,
+        responseBody: true,
+      ));
     }
   }
 
-  /// Ensures only one refresh call is in flight even if several requests
-  /// 401 at the same time — they all await the same future.
+  /// Ensures only one refresh call is in flight across simultaneous 401 requests.
   Future<String?> _refreshAccessToken() {
     return _refreshInFlight ??= _doRefresh().whenComplete(() => _refreshInFlight = null);
   }
@@ -94,24 +99,33 @@ class DioClient {
     if (refreshToken == null || refreshToken.isEmpty) return null;
 
     try {
-      final plainDio = Dio(BaseOptions(baseUrl: ApiConstants.baseUrl, headers: {'Content-Type': 'application/json'}));
-      final response = await plainDio.post(ApiConstants.refresh, data: {'refresh_token': refreshToken});
-      final newAccessToken = (response.data['data'] as Map<String, dynamic>)['access_token'] as String;
+      final plainDio = Dio(BaseOptions(
+        baseUrl: ApiConstants.baseUrl,
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
+        },
+      ));
+
+      final response = await plainDio.post(
+        ApiConstants.refresh,
+        data: {'refresh_token': refreshToken},
+      );
+
+      final data = response.data['data'] as Map<String, dynamic>;
+      final newAccessToken = data['access_token'] as String;
+
       await _authStorage.updateAccessToken(newAccessToken);
-      await ApiClient.setAuthToken(newAccessToken);
       return newAccessToken;
     } catch (_) {
       return null;
     }
   }
 
-  /// Pulls the restaurant's subdomain out of the stored `LoggedInUser` JSON
-  /// (see `AuthStorage.saveSession`) so every request can carry it as
-  /// `x-subdomain`, without this class depending on the `LoggedInUser` model.
+  /// Reads subdomain from stored user JSON so every request carries `x-subdomain`.
   Future<String?> _readSubDomain() async {
     final userJson = await _authStorage.readUserJson();
     if (userJson == null || userJson.isEmpty) return null;
-
     try {
       final user = jsonDecode(userJson) as Map<String, dynamic>;
       final restaurant = user['restaurant'] as Map<String, dynamic>?;
@@ -121,5 +135,3 @@ class DioClient {
     }
   }
 }
-
-

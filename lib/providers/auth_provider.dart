@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import '../core/network/api_client.dart';
 import '../core/network/api_exception.dart';
 import '../core/storage/auth_storage.dart';
 import '../data/models/auth/logged_in_user.dart';
@@ -37,9 +36,6 @@ class AuthProvider extends ChangeNotifier {
     if (token != null && token.isNotEmpty && userJson != null) {
       currentUser = LoggedInUser.fromJson(jsonDecode(userJson) as Map<String, dynamic>);
       status = AuthStatus.authenticated;
-      // Keeps the newer ApiClient/Service stack authenticated too, since it
-      // has its own token cache separate from AuthStorage/DioClient.
-      await ApiClient.setAuthToken(token);
     } else {
       status = AuthStatus.unauthenticated;
     }
@@ -61,7 +57,6 @@ class AuthProvider extends ChangeNotifier {
       currentUser = result.user;
       status = AuthStatus.authenticated;
       isLoggingIn = false;
-      await ApiClient.setAuthToken(result.accessToken);
       notifyListeners();
       return true;
     } on ApiException catch (e) {
@@ -101,7 +96,6 @@ class AuthProvider extends ChangeNotifier {
       currentUser = result.user;
       status = AuthStatus.authenticated;
       isRegistering = false;
-      await ApiClient.setAuthToken(result.accessToken);
       notifyListeners();
       return true;
     } on ApiException catch (e) {
@@ -136,7 +130,6 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> _clearSession() async {
     await _storage.clear();
-    await ApiClient.clearAuthToken();
     currentUser = null;
     errorMessage = null;
     status = AuthStatus.unauthenticated;

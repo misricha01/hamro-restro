@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import '../../core/network/api_constants.dart';
 import '../../core/network/dio_client.dart';
 import '../../core/network/api_exception.dart';
-import '../../screens/orders/table_order_sessions_screen.dart';
+import '../models/table_order/table_order_session.dart';
 
 abstract class TableOrderRepository {
   /// `GET /api/table-order`. [tableStatus] filters by `active` / `completed`

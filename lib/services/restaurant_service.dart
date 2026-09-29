@@ -1,16 +1,22 @@
 import 'package:dio/dio.dart';
-import '../core/network/api_client.dart';
+import '../core/network/api_constants.dart';
 import '../core/network/api_exception.dart';
+import '../core/network/dio_client.dart';
 import '../models/restaurant_profile.dart';
 import '../models/restaurant_type.dart';
 import '../models/update_restaurant_request.dart';
 
-/// Restaurant profile API calls.
+/// Restaurant profile and settings API service.
+/// Uses the unified [DioClient] singleton to ensure secure auth tokens,
+/// automatic 401 session refresh, and tenant subdomain routing.
 class RestaurantService {
+  static Dio get _dio => DioClient.instance.dio;
+
+  /// `GET /api/restaurant`
   static Future<RestaurantProfile> getRestaurantProfile() async {
     try {
-      final response = await ApiClient.instance.get('/restaurant');
-      final list = response.data['data'] as List<dynamic>;
+      final response = await _dio.get(ApiConstants.restaurant);
+      final list = response.data['data'] as List<dynamic>? ?? [];
       if (list.isEmpty) {
         throw const ApiException('No restaurant found for this account.');
       }
@@ -20,10 +26,15 @@ class RestaurantService {
     }
   }
 
-  /// `PATCH /api/restaurant/settings` (operation id `updateMyRestro`).
-  static Future<RestaurantProfile> updateRestaurantSettings(UpdateRestaurantRequest request) async {
+  /// `PATCH /api/restaurant/settings`
+  static Future<RestaurantProfile> updateRestaurantSettings(
+      UpdateRestaurantRequest request,
+      ) async {
     try {
-      final response = await ApiClient.instance.patch('/restaurant/settings', data: request.toJson());
+      final response = await _dio.patch(
+        ApiConstants.restaurantSettings,
+        data: request.toJson(),
+      );
       final data = response.data['data'] as Map<String, dynamic>;
       return RestaurantProfile.fromJson(data);
     } on DioException catch (e) {
@@ -31,25 +42,26 @@ class RestaurantService {
     }
   }
 
-  /// `GET /api/type-of-restro`, used to populate the Type chips with real
-  /// ids instead of hardcoded strings.
+  /// `GET /api/type-of-restro`
   static Future<List<RestaurantType>> getRestaurantTypes() async {
     try {
-      final response = await ApiClient.instance.get('/type-of-restro');
-      final list = response.data['data'] as List<dynamic>;
-      return list.map((e) => RestaurantType.fromJson(e as Map<String, dynamic>)).toList();
+      final response = await _dio.get(ApiConstants.typeOfRestro);
+      final list = response.data['data'] as List<dynamic>? ?? [];
+      return list
+          .map((e) => RestaurantType.fromJson(e as Map<String, dynamic>))
+          .toList();
     } on DioException catch (e) {
       throw mapDioError(e);
     }
   }
 
-  /// `POST /api/restaurant/transfer-ownership` (operation id
-  /// `RestaurantController_transferOwnership`). Body is `{"userId": "..."}`
-  /// per `TransferOwnershipDTO` — the target user must already be staff on
-  /// this restaurant. Caller's role changes to Admin on success.
+  /// `POST /api/restaurant/transfer-ownership`
   static Future<void> transferOwnership(String userId) async {
     try {
-      await ApiClient.instance.post('/restaurant/transfer-ownership', data: {'userId': userId});
+      await _dio.post(
+        ApiConstants.transferOwnership,
+        data: {'userId': userId},
+      );
     } on DioException catch (e) {
       throw mapDioError(e);
     }

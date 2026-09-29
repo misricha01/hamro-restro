@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import '../core/network/api_exception.dart';
 import '../data/models/table_order/table_order_session.dart';
 import '../data/repositories/table_order_repository.dart';
-import '../screens/orders/table_order_sessions_screen.dart';
 import 'order_provider.dart' show LoadStatus;
 
 /// ViewModel for the active table-order sessions list (`GET

@@ -13,6 +13,7 @@ class PurchaseBillProvider extends ChangeNotifier {
 
   LoadStatus status = LoadStatus.idle;
   List<PurchaseBill> bills = [];
+  double totalAmount = 0;
   String? errorMessage;
 
   Future<void> fetchBills({String? purchaseStatus}) async {
@@ -21,7 +22,9 @@ class PurchaseBillProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      bills = await _repository.getPurchaseBills(purchaseStatus: purchaseStatus);
+      final result = await _repository.getPurchaseBillsWithTotal(purchaseStatus: purchaseStatus);
+      bills = result.bills;
+      totalAmount = result.totalAmount;
       status = LoadStatus.loaded;
     } on ApiException catch (e) {
       errorMessage = e.message;

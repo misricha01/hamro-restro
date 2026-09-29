@@ -98,7 +98,8 @@ class _ManageDishesScreenState extends State<ManageDishesScreen> {
         AnalyticsLegendRowData(label: 'Active Dishes', value: '${stats.activeDish}/${stats.totalDish}'),
         if (stats.topSoldName != null)
           AnalyticsLegendRowData(label: 'Top Sold', value: '${stats.topSoldName} (${stats.topSoldOrders ?? 0} orders)'),
-        if (stats.topDishTypeName != null) AnalyticsLegendRowData(label: 'Top Type', value: stats.topDishTypeName!),
+        if (stats.topDishTypeName != null)
+          AnalyticsLegendRowData(label: 'Top Type', value: '${stats.topDishTypeName} (${stats.topDishTypeCount ?? 0} dishes)'),
       ],
     );
   }
@@ -423,3 +424,4 @@ class _DishTransactionsSheetState extends State<DishTransactionsSheet> {
     );
   }
 }
+

@@ -5,7 +5,6 @@ import '../../data/models/auth/logged_in_user.dart';
 import '../../providers/auth_provider.dart';
 import '../notification/notification_screen.dart';
 import 'my_profile_screen.dart';
-import 'my_profile_screen.dart';
 import '../create_users/invite_staff_screen.dart';
 import '../create_dish/add_dish_screen.dart' show SelectAddOnsSheet;
 import 'manage_dishes_screen.dart';

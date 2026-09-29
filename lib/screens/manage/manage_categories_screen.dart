@@ -99,6 +99,13 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
                         'Top Sold: ${categoryProvider.categoryStats!.topSoldName} (${categoryProvider.categoryStats!.topSoldOrders ?? 0} orders)',
                         style: const TextStyle(fontSize: 15, color: AppTheme.textSecondary, decoration: TextDecoration.none),
                       ),
+                    if (categoryProvider.categoryStatsStatus == LoadStatus.loaded &&
+                        categoryProvider.categoryStats != null &&
+                        categoryProvider.categoryStats!.mostDishName != null)
+                      Text(
+                        'Most Dishes: ${categoryProvider.categoryStats!.mostDishName} (${categoryProvider.categoryStats!.mostDishCount ?? 0})',
+                        style: const TextStyle(fontSize: 15, color: AppTheme.textSecondary, decoration: TextDecoration.none),
+                      ),
                   ],
                 ),
               ),

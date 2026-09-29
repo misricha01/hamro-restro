@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
-import '../../data/models/table_order/table_order_session.dart';
 import '../../screens/reservation/add_reservation_screen.dart';
 import '../../screens/orders/checkout_history_screen.dart';
 import '../../screens/orders/kot_history_screen.dart';

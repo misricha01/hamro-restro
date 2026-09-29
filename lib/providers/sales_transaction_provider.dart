@@ -13,6 +13,11 @@ class SalesTransactionProvider extends ChangeNotifier {
 
   LoadStatus status = LoadStatus.idle;
   List<SalesTransaction> transactions = [];
+
+  /// Server-computed sales total (`message.totalCheckoutAmount`) for the last
+  /// fetch. Only meaningful when [fetchTransactions] was called with a
+  /// `checkoutStatus` -- the backend returns 0 when no status filter is sent.
+  double totalAmount = 0;
   String? errorMessage;
 
   Future<void> fetchTransactions({String? checkoutStatus}) async {
@@ -21,7 +26,9 @@ class SalesTransactionProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      transactions = await _repository.getSalesTransactions(checkoutStatus: checkoutStatus);
+      final result = await _repository.getSalesTransactionsWithTotal(checkoutStatus: checkoutStatus);
+      transactions = result.transactions;
+      totalAmount = result.totalAmount;
       status = LoadStatus.loaded;
     } on ApiException catch (e) {
       errorMessage = e.message;

@@ -58,7 +58,13 @@ class _OtherServicesScreenState extends State<OtherServicesScreen> {
   }
 
   void _save() {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Changes saved')));
+    // These service settings have no backend endpoint yet, so nothing is
+    // persisted — the toggles/menu-sets/hours are local UI state only. Report
+    // that honestly instead of a fake "Changes saved". Wire this to
+    // PATCH /api/restaurant/settings once the settings schema is available.
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Saving these settings is not available yet.')),
+    );
   }
 
   @override

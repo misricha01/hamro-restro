@@ -582,7 +582,7 @@ class _CommentsTabState extends State<_CommentsTab> {
       ),
     );
     controller.dispose();
-    if (newText == null || newText.isEmpty || newText == comment.comment || comment.id == null) return;
+    if (newText == null || newText.isEmpty || newText == comment.comment || comment.id == null || !mounted) return;
 
     final provider = context.read<CustomerCommentProvider>();
     final ok = await provider.updateComment(id: comment.id!, comment: newText);

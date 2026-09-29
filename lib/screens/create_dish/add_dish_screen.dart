@@ -84,98 +84,98 @@ class _SelectSubMenuSheetState extends State<SelectSubMenuSheet> {
           child: SafeArea(
             top: false,
             child: Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Select Sub-Menu',
-                      style: TextStyle(
-                        color: AppTheme.textPrimary,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        decoration: TextDecoration.none,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      decoration: BoxDecoration(
-                        color: AppTheme.card,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: TextField(
-                        controller: _searchController,
-                        style: const TextStyle(color: AppTheme.textPrimary, decoration: TextDecoration.none),
-                        onChanged: (_) => setState(() {}),
-                        decoration: const InputDecoration(
-                          hintText: 'Search here',
-                          hintStyle: TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none),
-                          prefixIcon: Icon(Icons.search, color: AppTheme.textSecondary),
-                          border: InputBorder.none,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Expanded(child: _buildBody(provider, scrollController)),
-                    const SizedBox(height: 8),
-                    Center(
-                      child: Text(
-                        'Total Sub Menu : ${provider.types.length}',
-                        style: const TextStyle(
-                          color: AppTheme.textSecondary,
-                          fontSize: 14,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Select Sub-Menu',
+                        style: TextStyle(
+                          color: AppTheme.textPrimary,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
                           decoration: TextDecoration.none,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          final result = await Navigator.of(context).push<TypeOfMenu>(
-                            MaterialPageRoute(builder: (context) => const AddSubMenuScreen()),
-                          );
-                          if (result != null && context.mounted) {
-                            Navigator.pop(context, result);
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primary,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        decoration: BoxDecoration(
+                          color: AppTheme.card,
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Text(
-                          'Add New Sub-Menu',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                        child: TextField(
+                          controller: _searchController,
+                          style: const TextStyle(color: AppTheme.textPrimary, decoration: TextDecoration.none),
+                          onChanged: (_) => setState(() {}),
+                          decoration: const InputDecoration(
+                            hintText: 'Search here',
+                            hintStyle: TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none),
+                            prefixIcon: Icon(Icons.search, color: AppTheme.textSecondary),
+                            border: InputBorder.none,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Expanded(child: _buildBody(provider, scrollController)),
+                      const SizedBox(height: 8),
+                      Center(
+                        child: Text(
+                          'Total Sub Menu : ${provider.types.length}',
+                          style: const TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 14,
                             decoration: TextDecoration.none,
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              Positioned(
-                top: 12,
-                right: 12,
-                child: GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: const BoxDecoration(color: AppTheme.card, shape: BoxShape.circle),
-                    child: const Icon(Icons.close, color: AppTheme.accent, size: 20),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            final result = await Navigator.of(context).push<TypeOfMenu>(
+                              MaterialPageRoute(builder: (context) => const AddSubMenuScreen()),
+                            );
+                            if (result != null && context.mounted) {
+                              Navigator.pop(context, result);
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primary,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: const Text(
+                            'Add New Sub-Menu',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              decoration: TextDecoration.none,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ],
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: const BoxDecoration(color: AppTheme.card, shape: BoxShape.circle),
+                      child: const Icon(Icons.close, color: AppTheme.accent, size: 20),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         );
@@ -325,80 +325,80 @@ class _SelectCategorySheetState extends State<SelectCategorySheet> {
           child: SafeArea(
             top: false,
             child: Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Select Category',
-                      style: TextStyle(
-                        color: AppTheme.textPrimary,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        decoration: TextDecoration.none,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      decoration: BoxDecoration(
-                        color: AppTheme.card,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: TextField(
-                        controller: _searchController,
-                        style: const TextStyle(color: AppTheme.textPrimary, decoration: TextDecoration.none),
-                        onChanged: (_) => setState(() {}),
-                        decoration: const InputDecoration(
-                          hintText: 'Search here',
-                          hintStyle: TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none),
-                          prefixIcon: Icon(Icons.search, color: AppTheme.textSecondary),
-                          border: InputBorder.none,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Select Category',
+                        style: TextStyle(
+                          color: AppTheme.textPrimary,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.none,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    Expanded(child: _buildBody(categoryProvider, scrollController)),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: ElevatedButton(
-                        onPressed: _addCategory,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primary,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        decoration: BoxDecoration(
+                          color: AppTheme.card,
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Text(
-                          'Add New Category',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            decoration: TextDecoration.none,
+                        child: TextField(
+                          controller: _searchController,
+                          style: const TextStyle(color: AppTheme.textPrimary, decoration: TextDecoration.none),
+                          onChanged: (_) => setState(() {}),
+                          decoration: const InputDecoration(
+                            hintText: 'Search here',
+                            hintStyle: TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none),
+                            prefixIcon: Icon(Icons.search, color: AppTheme.textSecondary),
+                            border: InputBorder.none,
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              Positioned(
-                top: 12,
-                right: 12,
-                child: GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: const BoxDecoration(color: AppTheme.card, shape: BoxShape.circle),
-                    child: const Icon(Icons.close, color: AppTheme.accent, size: 20),
+                      const SizedBox(height: 16),
+                      Expanded(child: _buildBody(categoryProvider, scrollController)),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: _addCategory,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primary,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: const Text(
+                            'Add New Category',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              decoration: TextDecoration.none,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ],
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: const BoxDecoration(color: AppTheme.card, shape: BoxShape.circle),
+                      child: const Icon(Icons.close, color: AppTheme.accent, size: 20),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         );
@@ -702,7 +702,7 @@ class _SelectDishTypeSheetState extends State<SelectDishTypeSheet> {
 
   Future<void> _openActions(DishType dishType) async {
     final action = await EditDeleteActionsSheet.show(context, title: dishType.dishTypeName);
-    if (!context.mounted) return;
+    if (!mounted) return;
     if (action == 'edit') {
       await Navigator.push<DishType>(context, MaterialPageRoute(builder: (context) => AddDishTypeScreen(existingDishType: dishType)));
     } else if (action == 'delete') {
@@ -726,12 +726,12 @@ class _SelectDishTypeSheetState extends State<SelectDishTypeSheet> {
         ],
       ),
     );
-    if (confirmed != true || !context.mounted) return;
+    if (confirmed != true || !mounted) return;
 
     final provider = context.read<DishTypeProvider>();
     final messenger = ScaffoldMessenger.of(context);
     final success = await provider.deleteDishType(dishType.id);
-    if (!success && context.mounted) {
+    if (!success && mounted) {
       messenger.showSnackBar(SnackBar(content: Text(provider.deleteErrorMessage ?? 'Failed to delete dish type')));
     }
   }
@@ -754,58 +754,58 @@ class _SelectDishTypeSheetState extends State<SelectDishTypeSheet> {
           child: SafeArea(
             top: false,
             child: Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Expanded(
-                          child: Text(
-                            'Select Dish Type',
-                            style: TextStyle(
-                              color: AppTheme.textPrimary,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              decoration: TextDecoration.none,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Expanded(
+                            child: Text(
+                              'Select Dish Type',
+                              style: TextStyle(
+                                color: AppTheme.textPrimary,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                decoration: TextDecoration.none,
+                              ),
                             ),
                           ),
-                        ),
-                        TextButton.icon(
-                          onPressed: _addDishType,
-                          icon: const Icon(Icons.add, color: AppTheme.accent, size: 18),
-                          label: const Text('Add New', style: TextStyle(color: AppTheme.accent, decoration: TextDecoration.none)),
+                          TextButton.icon(
+                            onPressed: _addDishType,
+                            icon: const Icon(Icons.add, color: AppTheme.accent, size: 18),
+                            label: const Text('Add New', style: TextStyle(color: AppTheme.accent, decoration: TextDecoration.none)),
+                          ),
+                        ],
+                      ),
+                      if (dishTypeProvider.dishTypeCountsStatus == LoadStatus.loaded && dishTypeProvider.dishTypeCounts != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          '${dishTypeProvider.dishTypeCounts!.total} total · ${dishTypeProvider.dishTypeCounts!.active} active',
+                          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12.5, decoration: TextDecoration.none),
                         ),
                       ],
-                    ),
-                    if (dishTypeProvider.dishTypeCountsStatus == LoadStatus.loaded && dishTypeProvider.dishTypeCounts != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        '${dishTypeProvider.dishTypeCounts!.total} total · ${dishTypeProvider.dishTypeCounts!.active} active',
-                        style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12.5, decoration: TextDecoration.none),
-                      ),
+                      const SizedBox(height: 12),
+                      Expanded(child: _buildBody(dishTypeProvider, scrollController)),
                     ],
-                    const SizedBox(height: 12),
-                    Expanded(child: _buildBody(dishTypeProvider, scrollController)),
-                  ],
-                ),
-              ),
-              Positioned(
-                top: 12,
-                right: 12,
-                child: GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: const BoxDecoration(color: AppTheme.card, shape: BoxShape.circle),
-                    child: const Icon(Icons.close, color: AppTheme.accent, size: 20),
                   ),
                 ),
-              ),
-            ],
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: const BoxDecoration(color: AppTheme.card, shape: BoxShape.circle),
+                      child: const Icon(Icons.close, color: AppTheme.accent, size: 20),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         );
@@ -984,159 +984,159 @@ class _SelectKitchenTypeSheetState extends State<SelectKitchenTypeSheet> {
           child: SafeArea(
             top: false,
             child: Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Select Kitchen Type',
-                      style: TextStyle(
-                        color: AppTheme.textPrimary,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        decoration: TextDecoration.none,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      decoration: BoxDecoration(
-                        color: AppTheme.card,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: TextField(
-                        controller: _searchController,
-                        style: const TextStyle(color: AppTheme.textPrimary, decoration: TextDecoration.none),
-                        onChanged: (_) => setState(() {}),
-                        decoration: const InputDecoration(
-                          hintText: 'Search here',
-                          hintStyle: TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none),
-                          prefixIcon: Icon(Icons.search, color: AppTheme.textSecondary),
-                          border: InputBorder.none,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Expanded(
-                      child: ListView.separated(
-                        controller: scrollController,
-                        itemCount: _filtered.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 12),
-                        itemBuilder: (context, index) {
-                          final item = _filtered[index];
-                          return InkWell(
-                            borderRadius: BorderRadius.circular(12),
-                            onTap: () => Navigator.pop(context, item.name),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              decoration: BoxDecoration(
-                                color: AppTheme.card,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: AppTheme.divider),
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 44,
-                                    height: 44,
-                                    decoration: BoxDecoration(
-                                      color: AppTheme.surface,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        item.code,
-                                        style: const TextStyle(
-                                          color: AppTheme.textPrimary,
-                                          fontWeight: FontWeight.bold,
-                                          decoration: TextDecoration.none,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 14),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        item.name,
-                                        style: const TextStyle(
-                                          color: AppTheme.textPrimary,
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w600,
-                                          decoration: TextDecoration.none,
-                                        ),
-                                      ),
-                                      Text(
-                                        item.description,
-                                        style: const TextStyle(
-                                          color: AppTheme.textSecondary,
-                                          fontSize: 13,
-                                          decoration: TextDecoration.none,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Center(
-                      child: Text(
-                        'Total KOT Type : ${_items.length}',
-                        style: const TextStyle(
-                          color: AppTheme.textSecondary,
-                          fontSize: 14,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Select Kitchen Type',
+                        style: TextStyle(
+                          color: AppTheme.textPrimary,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
                           decoration: TextDecoration.none,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          // TODO: Navigate to Add New KOT Type flow
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primary,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        decoration: BoxDecoration(
+                          color: AppTheme.card,
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Text(
-                          'Add New KOT Type',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                        child: TextField(
+                          controller: _searchController,
+                          style: const TextStyle(color: AppTheme.textPrimary, decoration: TextDecoration.none),
+                          onChanged: (_) => setState(() {}),
+                          decoration: const InputDecoration(
+                            hintText: 'Search here',
+                            hintStyle: TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none),
+                            prefixIcon: Icon(Icons.search, color: AppTheme.textSecondary),
+                            border: InputBorder.none,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Expanded(
+                        child: ListView.separated(
+                          controller: scrollController,
+                          itemCount: _filtered.length,
+                          separatorBuilder: (_, _) => const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            final item = _filtered[index];
+                            return InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () => Navigator.pop(context, item.name),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.card,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: AppTheme.divider),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 44,
+                                      height: 44,
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.surface,
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          item.code,
+                                          style: const TextStyle(
+                                            color: AppTheme.textPrimary,
+                                            fontWeight: FontWeight.bold,
+                                            decoration: TextDecoration.none,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 14),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          item.name,
+                                          style: const TextStyle(
+                                            color: AppTheme.textPrimary,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                            decoration: TextDecoration.none,
+                                          ),
+                                        ),
+                                        Text(
+                                          item.description,
+                                          style: const TextStyle(
+                                            color: AppTheme.textSecondary,
+                                            fontSize: 13,
+                                            decoration: TextDecoration.none,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Center(
+                        child: Text(
+                          'Total KOT Type : ${_items.length}',
+                          style: const TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 14,
                             decoration: TextDecoration.none,
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              Positioned(
-                top: 12,
-                right: 12,
-                child: GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: const BoxDecoration(color: AppTheme.card, shape: BoxShape.circle),
-                    child: const Icon(Icons.close, color: AppTheme.accent, size: 20),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            // TODO: Navigate to Add New KOT Type flow
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primary,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: const Text(
+                            'Add New KOT Type',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              decoration: TextDecoration.none,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ],
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: const BoxDecoration(color: AppTheme.card, shape: BoxShape.circle),
+                      child: const Icon(Icons.close, color: AppTheme.accent, size: 20),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         );
@@ -1202,7 +1202,7 @@ class _SelectAddOnsSheetState extends State<SelectAddOnsSheet> {
 
   Future<void> _openActions(AddOn addon) async {
     final action = await EditDeleteActionsSheet.show(context, title: addon.addonName);
-    if (!context.mounted) return;
+    if (!mounted) return;
     if (action == 'edit') {
       final oldName = addon.addonName;
       final updated = await Navigator.push<AddOn>(context, MaterialPageRoute(builder: (context) => AddAddOnScreen(existingAddOn: addon)));
@@ -1230,14 +1230,15 @@ class _SelectAddOnsSheetState extends State<SelectAddOnsSheet> {
         ],
       ),
     );
-    if (confirmed != true || !context.mounted) return;
+    if (confirmed != true || !mounted) return;
 
     final provider = context.read<AddOnProvider>();
     final messenger = ScaffoldMessenger.of(context);
     final success = await provider.deleteAddOn(addon.id);
+    if (!mounted) return;
     if (success) {
       setState(() => _selectedNames.remove(addon.addonName));
-    } else if (context.mounted) {
+    } else if (mounted) {
       messenger.showSnackBar(SnackBar(content: Text(provider.deleteErrorMessage ?? 'Failed to delete add-on')));
     }
   }
@@ -1260,119 +1261,119 @@ class _SelectAddOnsSheetState extends State<SelectAddOnsSheet> {
           child: SafeArea(
             top: false,
             child: Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Expanded(
-                          child: Text(
-                            'Select Add-Ons',
-                            style: TextStyle(
-                              color: AppTheme.textPrimary,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              decoration: TextDecoration.none,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Expanded(
+                            child: Text(
+                              'Select Add-Ons',
+                              style: TextStyle(
+                                color: AppTheme.textPrimary,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                decoration: TextDecoration.none,
+                              ),
                             ),
                           ),
+                          TextButton.icon(
+                            onPressed: _addAddOn,
+                            icon: const Icon(Icons.add, color: AppTheme.accent, size: 18),
+                            label: const Text('Add New', style: TextStyle(color: AppTheme.accent, decoration: TextDecoration.none)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        decoration: BoxDecoration(
+                          color: AppTheme.card,
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        TextButton.icon(
-                          onPressed: _addAddOn,
-                          icon: const Icon(Icons.add, color: AppTheme.accent, size: 18),
-                          label: const Text('Add New', style: TextStyle(color: AppTheme.accent, decoration: TextDecoration.none)),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      decoration: BoxDecoration(
-                        color: AppTheme.card,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: TextField(
-                        controller: _searchController,
-                        style: const TextStyle(color: AppTheme.textPrimary, decoration: TextDecoration.none),
-                        onChanged: (_) => setState(() {}),
-                        decoration: const InputDecoration(
-                          hintText: 'Search here',
-                          hintStyle: TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none),
-                          prefixIcon: Icon(Icons.search, color: AppTheme.textSecondary),
-                          border: InputBorder.none,
+                        child: TextField(
+                          controller: _searchController,
+                          style: const TextStyle(color: AppTheme.textPrimary, decoration: TextDecoration.none),
+                          onChanged: (_) => setState(() {}),
+                          decoration: const InputDecoration(
+                            hintText: 'Search here',
+                            hintStyle: TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none),
+                            prefixIcon: Icon(Icons.search, color: AppTheme.textSecondary),
+                            border: InputBorder.none,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Add-Ons / Extras',
-                      style: TextStyle(
-                        color: AppTheme.textPrimary,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        decoration: TextDecoration.none,
-                      ),
-                    ),
-                    if (addOnProvider.addOnStatsStatus == LoadStatus.loaded && addOnProvider.addOnStats?.mostUsedName != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        'Most used: ${addOnProvider.addOnStats!.mostUsedName}',
-                        style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12.5, decoration: TextDecoration.none),
-                      ),
-                    ],
-                    const SizedBox(height: 10),
-                    Expanded(child: _buildBody(addOnProvider, scrollController)),
-                    const SizedBox(height: 8),
-                    Center(
-                      child: Text(
-                        'Total Add-Ons / Extras : ${addOnProvider.addons.length}',
-                        style: const TextStyle(
-                          color: AppTheme.textSecondary,
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Add-Ons / Extras',
+                        style: TextStyle(
+                          color: AppTheme.textPrimary,
                           fontSize: 14,
+                          fontWeight: FontWeight.w600,
                           decoration: TextDecoration.none,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.pop(context, _selectedNames.toList()),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primary,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      if (addOnProvider.addOnStatsStatus == LoadStatus.loaded && addOnProvider.addOnStats?.mostUsedName != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Most used: ${addOnProvider.addOnStats!.mostUsedName} (${addOnProvider.addOnStats!.mostUsedOrders ?? 0} orders)',
+                          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12.5, decoration: TextDecoration.none),
                         ),
-                        child: const Text(
-                          'Done',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                      ],
+                      const SizedBox(height: 10),
+                      Expanded(child: _buildBody(addOnProvider, scrollController)),
+                      const SizedBox(height: 8),
+                      Center(
+                        child: Text(
+                          'Total Add-Ons / Extras : ${addOnProvider.addons.length}',
+                          style: const TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 14,
                             decoration: TextDecoration.none,
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              Positioned(
-                top: 12,
-                right: 12,
-                child: GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: const BoxDecoration(color: AppTheme.card, shape: BoxShape.circle),
-                    child: const Icon(Icons.close, color: AppTheme.accent, size: 20),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.pop(context, _selectedNames.toList()),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primary,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: const Text(
+                            'Done',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              decoration: TextDecoration.none,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ],
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: const BoxDecoration(color: AppTheme.card, shape: BoxShape.circle),
+                      child: const Icon(Icons.close, color: AppTheme.accent, size: 20),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         );
@@ -1664,9 +1665,9 @@ class SelectStockConsumptionSheet extends StatefulWidget {
   const SelectStockConsumptionSheet({super.key, this.initiallySelected = const []});
 
   static Future<List<StockConsumptionEntry>?> show(
-    BuildContext context, {
-    List<StockConsumptionEntry> initiallySelected = const [],
-  }) {
+      BuildContext context, {
+        List<StockConsumptionEntry> initiallySelected = const [],
+      }) {
     return Navigator.of(context).push<List<StockConsumptionEntry>>(
       MaterialPageRoute(
         builder: (context) => SelectStockConsumptionSheet(initiallySelected: initiallySelected),
@@ -1960,128 +1961,128 @@ class _SelectStockSheetState extends State<SelectStockSheet> {
           child: SafeArea(
             top: false,
             child: Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Select Stock',
-                      style: TextStyle(color: AppTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none),
-                    ),
-                    if (hasStock) ...[
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        decoration: BoxDecoration(color: AppTheme.card, borderRadius: BorderRadius.circular(10)),
-                        child: TextField(
-                          controller: _searchController,
-                          style: const TextStyle(color: AppTheme.textPrimary, decoration: TextDecoration.none),
-                          onChanged: (_) => setState(() {}),
-                          decoration: const InputDecoration(
-                            hintText: 'Search here',
-                            hintStyle: TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none),
-                            prefixIcon: Icon(Icons.search, color: AppTheme.textSecondary),
-                            border: InputBorder.none,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Select Stock',
+                        style: TextStyle(color: AppTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none),
+                      ),
+                      if (hasStock) ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          decoration: BoxDecoration(color: AppTheme.card, borderRadius: BorderRadius.circular(10)),
+                          child: TextField(
+                            controller: _searchController,
+                            style: const TextStyle(color: AppTheme.textPrimary, decoration: TextDecoration.none),
+                            onChanged: (_) => setState(() {}),
+                            decoration: const InputDecoration(
+                              hintText: 'Search here',
+                              hintStyle: TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none),
+                              prefixIcon: Icon(Icons.search, color: AppTheme.textSecondary),
+                              border: InputBorder.none,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                    const SizedBox(height: 16),
-                    Expanded(
-                      child: !hasStock
-                          ? _buildEmptyState('No Stock found. Needs to create the Stock!')
-                          : (_filtered.isEmpty
-                              ? _buildEmptyState('No matching stock found.')
-                              : ListView.separated(
-                                  controller: scrollController,
-                                  itemCount: _filtered.length,
-                                  separatorBuilder: (_, _) => const SizedBox(height: 12),
-                                  itemBuilder: (context, index) {
-                                    final item = _filtered[index];
-                                    return InkWell(
-                                      borderRadius: BorderRadius.circular(12),
-                                      onTap: () => Navigator.pop(context, item),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                        decoration: BoxDecoration(
-                                          color: AppTheme.card,
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(color: AppTheme.divider),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Container(
-                                              width: 44,
-                                              height: 44,
-                                              decoration: BoxDecoration(color: AppTheme.surface, borderRadius: BorderRadius.circular(10)),
-                                              child: Icon(item.icon, color: AppTheme.accent, size: 22),
-                                            ),
-                                            const SizedBox(width: 14),
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(item.name, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
-                                                  Text('Available: ${item.availableQty.toStringAsFixed(0)} ${item.unit}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12, decoration: TextDecoration.none)),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
+                      ],
+                      const SizedBox(height: 16),
+                      Expanded(
+                        child: !hasStock
+                            ? _buildEmptyState('No Stock found. Needs to create the Stock!')
+                            : (_filtered.isEmpty
+                            ? _buildEmptyState('No matching stock found.')
+                            : ListView.separated(
+                          controller: scrollController,
+                          itemCount: _filtered.length,
+                          separatorBuilder: (_, _) => const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            final item = _filtered[index];
+                            return InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () => Navigator.pop(context, item),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.card,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: AppTheme.divider),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 44,
+                                      height: 44,
+                                      decoration: BoxDecoration(color: AppTheme.surface, borderRadius: BorderRadius.circular(10)),
+                                      child: Icon(item.icon, color: AppTheme.accent, size: 22),
+                                    ),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(item.name, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
+                                          Text('Available: ${item.availableQty.toStringAsFixed(0)} ${item.unit}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12, decoration: TextDecoration.none)),
+                                        ],
                                       ),
-                                    );
-                                  },
-                                )),
-                    ),
-                    if (hasStock) ...[
-                      const SizedBox(height: 8),
-                      Center(
-                        child: Text(
-                          'Total Stock : ${widget.availableStock.length}',
-                          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14, decoration: TextDecoration.none),
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: ElevatedButton(
-                        onPressed: _createNewStock,
-                        style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                        child: const Text('Create New Stock', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
-                      ),
-                    ),
-                    if (!hasStock) ...[
-                      const SizedBox(height: 12),
-                      Center(
-                        child: TextButton(
-                          onPressed: () {
-                            // TODO: Navigate to help / learn more content
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
                           },
-                          child: const Text('Learn More', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600, decoration: TextDecoration.underline)),
+                        )),
+                      ),
+                      if (hasStock) ...[
+                        const SizedBox(height: 8),
+                        Center(
+                          child: Text(
+                            'Total Stock : ${widget.availableStock.length}',
+                            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14, decoration: TextDecoration.none),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: _createNewStock,
+                          style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                          child: const Text('Create New Stock', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
                         ),
                       ),
+                      if (!hasStock) ...[
+                        const SizedBox(height: 12),
+                        Center(
+                          child: TextButton(
+                            onPressed: () {
+                              // TODO: Navigate to help / learn more content
+                            },
+                            child: const Text('Learn More', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600, decoration: TextDecoration.underline)),
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
-                ),
-              ),
-              Positioned(
-                top: 12,
-                right: 12,
-                child: GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: const BoxDecoration(color: AppTheme.card, shape: BoxShape.circle),
-                    child: const Icon(Icons.close, color: AppTheme.accent, size: 20),
                   ),
                 ),
-              ),
-            ],
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: const BoxDecoration(color: AppTheme.card, shape: BoxShape.circle),
+                      child: const Icon(Icons.close, color: AppTheme.accent, size: 20),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         );
@@ -2179,100 +2180,100 @@ class _SelectUnitSheetState extends State<SelectUnitSheet> {
           child: SafeArea(
             top: false,
             child: Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Select Unit',
-                      style: TextStyle(color: AppTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none),
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      decoration: BoxDecoration(color: AppTheme.card, borderRadius: BorderRadius.circular(10)),
-                      child: TextField(
-                        controller: _searchController,
-                        style: const TextStyle(color: AppTheme.textPrimary, decoration: TextDecoration.none),
-                        onChanged: (_) => setState(() {}),
-                        decoration: const InputDecoration(
-                          hintText: 'Search here',
-                          hintStyle: TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none),
-                          prefixIcon: Icon(Icons.search, color: AppTheme.textSecondary),
-                          border: InputBorder.none,
-                        ),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Select Unit',
+                        style: TextStyle(color: AppTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    Expanded(
-                      child: !widget.hasStockSelected
-                          ? Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: const [
-                                  _EmptyStateIllustration(),
-                                  SizedBox(height: 20),
-                                  Text('No Stock selected', style: TextStyle(color: AppTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
-                                ],
-                              ),
-                            )
-                          : ListView.separated(
-                              controller: scrollController,
-                              itemCount: _filtered.length,
-                              separatorBuilder: (_, _) => const SizedBox(height: 12),
-                              itemBuilder: (context, index) {
-                                final item = _filtered[index];
-                                return InkWell(
-                                  borderRadius: BorderRadius.circular(12),
-                                  onTap: () => Navigator.pop(context, item.code),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                                    decoration: BoxDecoration(color: AppTheme.card, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppTheme.divider)),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(item.code, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
-                                        Text(item.name, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14, decoration: TextDecoration.none)),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                    ),
-                    if (widget.hasStockSelected) ...[
                       const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 52,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            // TODO: Navigate to Create Measuring Unit flow
-                          },
-                          style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                          child: const Text('Create Measuring Unit', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        decoration: BoxDecoration(color: AppTheme.card, borderRadius: BorderRadius.circular(10)),
+                        child: TextField(
+                          controller: _searchController,
+                          style: const TextStyle(color: AppTheme.textPrimary, decoration: TextDecoration.none),
+                          onChanged: (_) => setState(() {}),
+                          decoration: const InputDecoration(
+                            hintText: 'Search here',
+                            hintStyle: TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none),
+                            prefixIcon: Icon(Icons.search, color: AppTheme.textSecondary),
+                            border: InputBorder.none,
+                          ),
                         ),
                       ),
+                      const SizedBox(height: 16),
+                      Expanded(
+                        child: !widget.hasStockSelected
+                            ? Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: const [
+                              _EmptyStateIllustration(),
+                              SizedBox(height: 20),
+                              Text('No Stock selected', style: TextStyle(color: AppTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
+                            ],
+                          ),
+                        )
+                            : ListView.separated(
+                          controller: scrollController,
+                          itemCount: _filtered.length,
+                          separatorBuilder: (_, _) => const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            final item = _filtered[index];
+                            return InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () => Navigator.pop(context, item.code),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                                decoration: BoxDecoration(color: AppTheme.card, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppTheme.divider)),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(item.code, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
+                                    Text(item.name, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14, decoration: TextDecoration.none)),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      if (widget.hasStockSelected) ...[
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              // TODO: Navigate to Create Measuring Unit flow
+                            },
+                            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                            child: const Text('Create Measuring Unit', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
-                ),
-              ),
-              Positioned(
-                top: 12,
-                right: 12,
-                child: GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: const BoxDecoration(color: AppTheme.card, shape: BoxShape.circle),
-                    child: const Icon(Icons.close, color: AppTheme.accent, size: 20),
                   ),
                 ),
-              ),
-            ],
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: const BoxDecoration(color: AppTheme.card, shape: BoxShape.circle),
+                      child: const Icon(Icons.close, color: AppTheme.accent, size: 20),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         );
@@ -2331,88 +2332,88 @@ class _SelectStockGroupSheetState extends State<SelectStockGroupSheet> {
           child: SafeArea(
             top: false,
             child: Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Select Stock Group',
-                      style: TextStyle(color: AppTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none),
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      decoration: BoxDecoration(color: AppTheme.card, borderRadius: BorderRadius.circular(10)),
-                      child: TextField(
-                        controller: _searchController,
-                        style: const TextStyle(color: AppTheme.textPrimary, decoration: TextDecoration.none),
-                        onChanged: (_) => setState(() {}),
-                        decoration: const InputDecoration(
-                          hintText: 'Search here',
-                          hintStyle: TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none),
-                          prefixIcon: Icon(Icons.search, color: AppTheme.textSecondary),
-                          border: InputBorder.none,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Select Stock Group',
+                        style: TextStyle(color: AppTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold, decoration: TextDecoration.none),
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        decoration: BoxDecoration(color: AppTheme.card, borderRadius: BorderRadius.circular(10)),
+                        child: TextField(
+                          controller: _searchController,
+                          style: const TextStyle(color: AppTheme.textPrimary, decoration: TextDecoration.none),
+                          onChanged: (_) => setState(() {}),
+                          decoration: const InputDecoration(
+                            hintText: 'Search here',
+                            hintStyle: TextStyle(color: AppTheme.textSecondary, decoration: TextDecoration.none),
+                            prefixIcon: Icon(Icons.search, color: AppTheme.textSecondary),
+                            border: InputBorder.none,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    Expanded(
-                      child: ListView.separated(
-                        controller: scrollController,
-                        itemCount: _filtered.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 12),
-                        itemBuilder: (context, index) {
-                          final item = _filtered[index];
-                          return InkWell(
-                            borderRadius: BorderRadius.circular(12),
-                            onTap: () => Navigator.pop(context, item),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                              decoration: BoxDecoration(color: AppTheme.card, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppTheme.divider)),
-                              child: Text(item, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
-                            ),
-                          );
-                        },
+                      const SizedBox(height: 16),
+                      Expanded(
+                        child: ListView.separated(
+                          controller: scrollController,
+                          itemCount: _filtered.length,
+                          separatorBuilder: (_, _) => const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            final item = _filtered[index];
+                            return InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () => Navigator.pop(context, item),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                                decoration: BoxDecoration(color: AppTheme.card, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppTheme.divider)),
+                                child: Text(item, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
+                              ),
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Center(
-                      child: Text(
-                        'Total Stock Group : ${_items.length}',
-                        style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14, decoration: TextDecoration.none),
+                      const SizedBox(height: 8),
+                      Center(
+                        child: Text(
+                          'Total Stock Group : ${_items.length}',
+                          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14, decoration: TextDecoration.none),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          // TODO: Navigate to Create Group flow
-                        },
-                        style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                        child: const Text('Create Group', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            // TODO: Navigate to Create Group flow
+                          },
+                          style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                          child: const Text('Create Group', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600, decoration: TextDecoration.none)),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              Positioned(
-                top: 12,
-                right: 12,
-                child: GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: const BoxDecoration(color: AppTheme.card, shape: BoxShape.circle),
-                    child: const Icon(Icons.close, color: AppTheme.accent, size: 20),
+                    ],
                   ),
                 ),
-              ),
-            ],
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: const BoxDecoration(color: AppTheme.card, shape: BoxShape.circle),
+                      child: const Icon(Icons.close, color: AppTheme.accent, size: 20),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         );
@@ -2949,9 +2950,9 @@ class _EditVariantScreenState extends State<EditVariantScreen> {
                 child: _isSaving
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                     : const Text(
-                        'Save Variants',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, decoration: TextDecoration.none),
-                      ),
+                  'Save Variants',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, decoration: TextDecoration.none),
+                ),
               ),
             ),
           ],
@@ -3399,45 +3400,45 @@ class _AddDishScreenState extends State<AddDishScreen> {
 
     final dish = widget.isEditing
         ? await provider.updateDish(
-            id: widget.existingDish!.id,
-            dishName: dishName,
-            hsCode: hsCode,
-            // A newly-uploaded photo wins; otherwise keep whatever the dish
-            // already had rather than clearing it.
-            dishPhoto: _uploadedPhoto?.id ?? widget.existingDish!.dishPhoto,
-            description: description,
-            price: price,
-            discountType: discount == null ? null : 'amount',
-            discount: discount,
-            priceAfterDiscount: priceAfterDiscount,
-            addonIds: addonIds,
-            dishTypeId: _selectedDishType!.id,
-            menuCategoryId: _selectedCategory!.id,
-            unitId: unitId,
-            typeOfMenuId: typeOfMenuId,
-            variantIds: variantIds,
-            // No availability toggle in this form yet — preserve whatever
-            // the dish already had rather than silently resetting it.
-            available: widget.existingDish!.available,
-          )
+      id: widget.existingDish!.id,
+      dishName: dishName,
+      hsCode: hsCode,
+      // A newly-uploaded photo wins; otherwise keep whatever the dish
+      // already had rather than clearing it.
+      dishPhoto: _uploadedPhoto?.id ?? widget.existingDish!.dishPhoto,
+      description: description,
+      price: price,
+      discountType: discount == null ? null : 'amount',
+      discount: discount,
+      priceAfterDiscount: priceAfterDiscount,
+      addonIds: addonIds,
+      dishTypeId: _selectedDishType!.id,
+      menuCategoryId: _selectedCategory!.id,
+      unitId: unitId,
+      typeOfMenuId: typeOfMenuId,
+      variantIds: variantIds,
+      // No availability toggle in this form yet — preserve whatever
+      // the dish already had rather than silently resetting it.
+      available: widget.existingDish!.available,
+    )
         : await provider.createDish(
-            dishName: dishName,
-            hsCode: hsCode,
-            dishPhoto: _uploadedPhoto?.id,
-            description: description,
-            price: price,
-            discountType: discount == null ? null : 'amount',
-            discount: discount,
-            priceAfterDiscount: priceAfterDiscount,
-            addonIds: addonIds,
-            dishTypeId: _selectedDishType!.id,
-            menuCategoryId: _selectedCategory!.id,
-            // Optional — null unless a real (non-fallback) unit was picked, since
-            // GET /api/unit isn't live yet. See SelectMeasuringUnitSheet.
-            unitId: unitId,
-            typeOfMenuId: typeOfMenuId,
-            variantIds: variantIds,
-          );
+      dishName: dishName,
+      hsCode: hsCode,
+      dishPhoto: _uploadedPhoto?.id,
+      description: description,
+      price: price,
+      discountType: discount == null ? null : 'amount',
+      discount: discount,
+      priceAfterDiscount: priceAfterDiscount,
+      addonIds: addonIds,
+      dishTypeId: _selectedDishType!.id,
+      menuCategoryId: _selectedCategory!.id,
+      // Optional — null unless a real (non-fallback) unit was picked, since
+      // GET /api/unit isn't live yet. See SelectMeasuringUnitSheet.
+      unitId: unitId,
+      typeOfMenuId: typeOfMenuId,
+      variantIds: variantIds,
+    );
     if (!mounted) return;
 
     if (dish != null) {
@@ -3966,18 +3967,18 @@ class _AddDishScreenState extends State<AddDishScreen> {
                     ),
                     child: isSaving
                         ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
-                          )
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                    )
                         : Text(
-                            widget.isEditing ? 'Update' : 'Save',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                              decoration: TextDecoration.none,
-                            ),
-                          ),
+                      widget.isEditing ? 'Update' : 'Save',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        decoration: TextDecoration.none,
+                      ),
+                    ),
                   );
                 },
               ),
@@ -4259,12 +4260,12 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
     final messenger = ScaffoldMessenger.of(context);
     final category = widget.isEditing
         ? await provider.updateCategory(
-            id: widget.existingCategory!.id,
-            categoryName: name,
-            // A newly-uploaded photo wins; otherwise keep whatever the
-            // category already had rather than clearing it.
-            image: _uploadedPhoto?.id ?? widget.existingCategory!.image,
-          )
+      id: widget.existingCategory!.id,
+      categoryName: name,
+      // A newly-uploaded photo wins; otherwise keep whatever the
+      // category already had rather than clearing it.
+      image: _uploadedPhoto?.id ?? widget.existingCategory!.image,
+    )
         : await provider.createCategory(categoryName: name, image: _uploadedPhoto?.id);
     if (!mounted) return;
 
@@ -4360,22 +4361,22 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
                 builder: (context, provider, _) {
                   final isSaving = widget.isEditing ? provider.isUpdating : provider.isCreating;
                   return ElevatedButton(
-                  onPressed: isSaving ? null : _save,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  child: isSaving
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
-                        )
-                      : Text(
-                          widget.isEditing ? 'Update Category' : 'Save Category',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, decoration: TextDecoration.none),
-                        ),
+                    onPressed: isSaving ? null : _save,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: isSaving
+                        ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                    )
+                        : Text(
+                      widget.isEditing ? 'Update Category' : 'Save Category',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, decoration: TextDecoration.none),
+                    ),
                   );
                 },
               ),
@@ -4539,9 +4540,9 @@ class _AddSubMenuScreenState extends State<AddSubMenuScreen> {
                 child: isSaving
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                     : Text(
-                        widget.isEditing ? 'Update Sub Menu' : 'Save Sub Menu',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, decoration: TextDecoration.none),
-                      ),
+                  widget.isEditing ? 'Update Sub Menu' : 'Save Sub Menu',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, decoration: TextDecoration.none),
+                ),
               ),
             ),
           ],

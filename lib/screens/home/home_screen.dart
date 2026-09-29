@@ -11,7 +11,6 @@ import '../manage/add_table_screen.dart';
 import '../manage/create_space_screen.dart';
 import '../manage/manage_screen.dart';
 import '../manage/my_profile_screen.dart';
-import '../manage/my_profile_screen.dart';
 import '../manage/restaurant_setting_screen.dart';
 import 'faq_list_screen.dart';
 

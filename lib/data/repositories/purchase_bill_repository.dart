@@ -9,6 +9,18 @@ abstract class PurchaseBillRepository {
   /// `partial`); omit to fetch every status.
   Future<List<PurchaseBill>> getPurchaseBills({String? purchaseStatus});
 
+  /// `GET /api/purchase-bill`, but also surfacing `totalPurchaseAmount` from
+  /// the response's `message` block -- the backend returns
+  /// `{status, message: {totalPurchaseAmount, totalsByPaymentMethod,
+  /// totalsByPurchaseStatus}, meta, data}` on every call to this endpoint,
+  /// but only `data` (the bill list) was previously used, discarding the
+  /// total the backend was already computing. Uses a single request (not
+  /// two) -- prefer this over calling [getPurchaseBills] when the total is
+  /// also needed. Only `totalPurchaseAmount` is surfaced for now; the
+  /// per-payment-method and per-status breakdowns in `message` are not yet
+  /// used anywhere.
+  Future<({List<PurchaseBill> bills, double totalAmount})> getPurchaseBillsWithTotal({String? purchaseStatus});
+
   /// `POST /api/purchase-bill`. `customerId` is required by the backend's
   /// `CreatePurchaseBillDTO` despite this being a supplier purchase — the
   /// Add Purchase screen surfaces it as a real "Customer" picker rather than
@@ -53,6 +65,23 @@ class PurchaseBillRepositoryImpl implements PurchaseBillRepository {
       );
       final data = response.data['data'] as List<dynamic>? ?? [];
       return data.map((e) => PurchaseBill.fromJson(e as Map<String, dynamic>)).toList();
+    } on DioException catch (e) {
+      throw mapDioError(e);
+    }
+  }
+
+  @override
+  Future<({List<PurchaseBill> bills, double totalAmount})> getPurchaseBillsWithTotal({String? purchaseStatus}) async {
+    try {
+      final response = await _dio.get(
+        ApiConstants.purchaseBills,
+        queryParameters: {'page': 1, 'take': 50, 'purchaseStatus': ?purchaseStatus},
+      );
+      final data = response.data['data'] as List<dynamic>? ?? [];
+      final bills = data.map((e) => PurchaseBill.fromJson(e as Map<String, dynamic>)).toList();
+      final message = response.data['message'];
+      final total = message is Map<String, dynamic> ? (message['totalPurchaseAmount'] as num?)?.toDouble() ?? 0.0 : 0.0;
+      return (bills: bills, totalAmount: total);
     } on DioException catch (e) {
       throw mapDioError(e);
     }

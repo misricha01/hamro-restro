@@ -51,7 +51,7 @@ class _CashBankModeDetailScreenState extends State<CashBankModeDetailScreen> {
         ],
       ),
     );
-    if (confirmed != true) return;
+    if (confirmed != true || !mounted) return;
 
     final provider = context.read<PaymentMethodProvider>();
     final ok = await provider.deletePaymentMethod(_mode.id);

@@ -61,7 +61,7 @@ class _BillingSubscriptionScreenState extends State<BillingSubscriptionScreen> {
         ],
       ),
     );
-    if (confirmed != true) return;
+    if (confirmed != true || !mounted) return;
 
     final provider = context.read<SubscriptionProvider>();
     final ok = await provider.cancelSubscription();

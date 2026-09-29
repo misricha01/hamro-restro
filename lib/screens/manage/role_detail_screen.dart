@@ -150,7 +150,7 @@ class _RoleDetailScreenState extends State<RoleDetailScreen> {
       ),
     );
     controller.dispose();
-    if (newName == null || newName.isEmpty || newName == _role.name) return;
+    if (newName == null || newName.isEmpty || newName == _role.name || !mounted) return;
 
     final provider = context.read<RoleProvider>();
     final updated = await provider.updateRole(id: _role.id, name: newName);
@@ -175,7 +175,7 @@ class _RoleDetailScreenState extends State<RoleDetailScreen> {
         ],
       ),
     );
-    if (confirmed != true) return;
+    if (confirmed != true || !mounted) return;
 
     final provider = context.read<RoleProvider>();
     final ok = await provider.deleteRole(_role.id);

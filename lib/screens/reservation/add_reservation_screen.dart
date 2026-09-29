@@ -411,9 +411,15 @@ class _AddReservationScreenState extends State<AddReservationScreen> {
                     flex: 2,
                     child: ElevatedButton(
                       onPressed: () {
-                        // TODO: Wire to a ReservationProvider once the backend
-                        // has a reservation endpoint — there isn't one yet.
-                        Navigator.pop(context);
+                        // No reservation endpoint exists on the backend yet, so
+                        // there is nothing to persist. Tell the user honestly
+                        // instead of silently closing the form as if it saved
+                        // (which also discarded their input). Keep the form open
+                        // so entered data isn't lost. Wire this to a
+                        // ReservationProvider once a reservation endpoint exists.
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Reservations are not available yet.')),
+                        );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primary,

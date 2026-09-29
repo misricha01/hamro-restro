@@ -519,6 +519,7 @@ class _PurchaseBillsTabState extends State<PurchaseBillsTab> {
           ),
         ),
         Expanded(child: _buildBody(provider)),
+        if (provider.status == LoadStatus.loaded && provider.bills.isNotEmpty) _PurchaseTotalStrip(total: provider.totalAmount),
         AddEntityBar(
           label: 'Add Purchase Bill',
           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AddPurchaseScreen())),
@@ -542,6 +543,31 @@ class _PurchaseBillsTabState extends State<PurchaseBillsTab> {
       itemCount: provider.bills.length,
       separatorBuilder: (context, index) => const SizedBox(height: 10),
       itemBuilder: (context, index) => _PurchaseBillCard(bill: provider.bills[index]),
+    );
+  }
+}
+
+/// Small summary strip showing the backend-computed `totalPurchaseAmount`
+/// for the current filter -- this figure was already being returned by
+/// `GET /api/purchase-bill` (in the response's `message` block) but was
+/// previously discarded; only the bill list itself was used.
+class _PurchaseTotalStrip extends StatelessWidget {
+  final double total;
+  const _PurchaseTotalStrip({required this.total});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(color: AppTheme.card, borderRadius: BorderRadius.circular(10)),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text('Total Purchase Amount', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13, decoration: TextDecoration.none)),
+          Text(_rs(total), style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 14.5, decoration: TextDecoration.none)),
+        ],
+      ),
     );
   }
 }

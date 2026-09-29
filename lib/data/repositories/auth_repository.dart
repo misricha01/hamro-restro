@@ -30,7 +30,7 @@ abstract class AuthRepository {
 class AuthRepositoryImpl implements AuthRepository {
   final Dio _dio;
 
-  AuthRepositoryImpl({DioClient? dioClient}) : _dio = (dioClient ?? DioClient()).dio;
+  AuthRepositoryImpl({DioClient? dioClient}) : _dio = (dioClient ?? DioClient.instance).dio;
 
   @override
   Future<LoginResponse> login(LoginRequest request) async {

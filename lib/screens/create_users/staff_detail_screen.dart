@@ -117,7 +117,7 @@ class _StaffDetailScreenState extends State<StaffDetailScreen> {
         ],
       ),
     );
-    if (confirmed != true) return;
+    if (confirmed != true || !mounted) return;
 
     final provider = context.read<StaffProvider>();
     final ok = await provider.deleteStaff(_staff.id);

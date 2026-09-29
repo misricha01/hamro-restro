@@ -364,6 +364,8 @@ class _BalanceTransferTab extends StatefulWidget {
 }
 
 class _BalanceTransferTabState extends State<_BalanceTransferTab> {
+  // Only reflected in the button label for now: there are no transfers to
+  // filter until `/api/bank-account` exists (see API_INTEGRATION_REPORT.md).
   String _filter = 'All';
 
   @override
@@ -387,12 +389,12 @@ class _BalanceTransferTabState extends State<_BalanceTransferTab> {
                     decoration: BoxDecoration(color: AppTheme.card, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppTheme.divider)),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        Icon(Icons.tune, color: AppTheme.textPrimary, size: 16),
-                        SizedBox(width: 6),
-                        Text('Filter', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600, fontSize: 14, decoration: TextDecoration.none)),
-                        SizedBox(width: 4),
-                        Icon(Icons.keyboard_arrow_down, color: AppTheme.textSecondary, size: 20),
+                      children: [
+                        const Icon(Icons.tune, color: AppTheme.textPrimary, size: 16),
+                        const SizedBox(width: 6),
+                        Text(_filter == 'All' ? 'Filter' : _filter, style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600, fontSize: 14, decoration: TextDecoration.none)),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.keyboard_arrow_down, color: AppTheme.textSecondary, size: 20),
                       ],
                     ),
                   ),
