@@ -331,7 +331,6 @@ class _QuickBillingScreenState extends State<QuickBillingScreen> {
                   _FilterChip(
                     icon: Icons.tune,
                     label: 'Filters',
-                    isSelected: _selectedCategory != 'All Categories',
                     onTap: () => _openFilterSort(categoryNames),
                   ),
                   const SizedBox(width: 10),
