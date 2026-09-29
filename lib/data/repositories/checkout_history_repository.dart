@@ -6,11 +6,6 @@ import '../models/checkout_history/checkout_history_model.dart';
 
 abstract class CheckoutHistoryRepository {
   Future<List<CheckoutHistoryEntry>> getCheckoutHistory();
-
-  /// `POST /api/checkout-history` — logs a completed checkout into the
-  /// audit trail. Called by `CheckoutProvider` right after a checkout is
-  /// completed.
-  Future<void> createEntry(String checkoutId);
 }
 
 class CheckoutHistoryRepositoryImpl implements CheckoutHistoryRepository {
@@ -24,15 +19,6 @@ class CheckoutHistoryRepositoryImpl implements CheckoutHistoryRepository {
       final response = await _dio.get(ApiConstants.checkoutHistory);
       final data = response.data['data'] as List<dynamic>? ?? [];
       return data.map((e) => CheckoutHistoryEntry.fromJson(e as Map<String, dynamic>)).toList();
-    } on DioException catch (e) {
-      throw mapDioError(e);
-    }
-  }
-
-  @override
-  Future<void> createEntry(String checkoutId) async {
-    try {
-      await _dio.post(ApiConstants.checkoutHistory, data: {'checkoutId': checkoutId});
     } on DioException catch (e) {
       throw mapDioError(e);
     }

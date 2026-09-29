@@ -33,7 +33,8 @@ class KotRecord {
 abstract class KotRepository {
   Future<List<KotRecord>> getKots();
 
-  /// `PATCH /api/kot/{id}` with just `orderStatus` — used for "Mark
+  /// `PATCH /api/kot/{id}` with just `kotStatus` (the backend's
+  /// UpdateKOTDTO rejects `orderStatus`) — used for "Mark
   /// Complete" (KOTs are created server-side as a side effect of
   /// `POST /api/order`, so there's no standalone create flow here).
   Future<Kot> updateKotStatus({required String id, required String orderStatus});
@@ -60,7 +61,7 @@ class KotRepositoryImpl implements KotRepository {
   @override
   Future<Kot> updateKotStatus({required String id, required String orderStatus}) async {
     try {
-      final response = await _dio.patch('${ApiConstants.kot}/$id', data: {'orderStatus': orderStatus});
+      final response = await _dio.patch('${ApiConstants.kot}/$id', data: {'kotStatus': orderStatus});
       final raw = response.data['data'];
       if (raw is Map<String, dynamic> && raw['orderStatus'] != null) return Kot.fromJson(raw);
 

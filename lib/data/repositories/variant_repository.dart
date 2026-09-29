@@ -43,16 +43,17 @@ class VariantRepositoryImpl implements VariantRepository {
     }
   }
 
+  // `unitId` is deliberately not sent: the backend's Create/UpdateVariantDTO
+  // has no such field and rejects the request with
+  // "property unitId should not exist" (verified live 2026-09-29).
   Map<String, dynamic> _body({
     required String variantName,
-    String? unitId,
     required double actualPrice,
     required double discount,
     required double cogs,
   }) {
     return {
       'variantName': variantName,
-      'unitId': ?unitId,
       'actualPrice': actualPrice,
       'discount': discount,
       'cogs': cogs,
@@ -70,7 +71,7 @@ class VariantRepositoryImpl implements VariantRepository {
     try {
       final response = await _dio.post(
         ApiConstants.variants,
-        data: _body(variantName: variantName, unitId: unitId, actualPrice: actualPrice, discount: discount, cogs: cogs),
+        data: _body(variantName: variantName, actualPrice: actualPrice, discount: discount, cogs: cogs),
       );
       final raw = response.data['data'];
       if (raw is Map<String, dynamic> && raw['variantName'] != null) return Variant.fromJson(raw);
@@ -99,7 +100,7 @@ class VariantRepositoryImpl implements VariantRepository {
     try {
       final response = await _dio.patch(
         '${ApiConstants.variants}/$id',
-        data: _body(variantName: variantName, unitId: unitId, actualPrice: actualPrice, discount: discount, cogs: cogs),
+        data: _body(variantName: variantName, actualPrice: actualPrice, discount: discount, cogs: cogs),
       );
       final raw = response.data['data'];
       if (raw is Map<String, dynamic> && raw['variantName'] != null) return Variant.fromJson(raw);

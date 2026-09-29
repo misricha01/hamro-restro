@@ -118,7 +118,6 @@ class RestroXApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => CheckoutProvider(
             repository: CheckoutRepositoryImpl(dioClient: dioClient),
-            historyRepository: CheckoutHistoryRepositoryImpl(dioClient: dioClient),
           ),
         ),
         ChangeNotifierProvider(

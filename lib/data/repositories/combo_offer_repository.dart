@@ -64,7 +64,10 @@ class ComboOfferRepositoryImpl implements ComboOfferRepository {
       if (description != null && description.isNotEmpty) 'description': description,
       if (hsCode != null && hsCode.isNotEmpty) 'hsCode': hsCode,
       'comboPhoto': ?comboPhoto,
-      'dishIds': dishIds,
+      // Backend takes `items: [{dishId, variantId?, quantity}]` and rejects
+      // `dishIds` (verified live 2026-09-29). The combo screen only picks
+      // dishes, so each one is sent with quantity 1 and no variant.
+      'items': dishIds.map((id) => {'dishId': id, 'quantity': 1}).toList(),
       'offerPrice': offerPrice,
       'startsAt': startsAt.toUtc().toIso8601String(),
       'endsAt': endsAt.toUtc().toIso8601String(),

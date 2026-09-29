@@ -25,7 +25,13 @@ class ComboOffer {
   });
 
   factory ComboOffer.fromJson(Map<String, dynamic> json) {
-    final dishIds = json['dishIds'] as List<dynamic>? ?? const [];
+    // The backend returns `items: [{dishId, variantId, quantity, dish}]`
+    // rather than a flat `dishIds` list (verified live 2026-09-29); fall back
+    // to `dishIds` in case an older response shape still carries it.
+    final items = json['items'] as List<dynamic>?;
+    final dishIds = items != null
+        ? items.map((e) => (e as Map<String, dynamic>)['dishId']).whereType<Object>().toList()
+        : json['dishIds'] as List<dynamic>? ?? const [];
     // Same "flat media id on create, nested media object when expanded"
     // shape seen on Dish's `dishPhoto` — handle both. See DishModel.
     final rawPhoto = json['comboPhoto'];
